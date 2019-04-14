@@ -1,6 +1,6 @@
 # Genetic Algorithm KNIME Plugin
 
-## This project was handed down to me as a suggestion from my proffessors from college to be my Final Year Project.
+## This project was handed down to me as a suggestion from my professors from college to be my Final Year Project.
 
 The main idea is to create a new node to be included into [KNIME platform](https://www.knime.com/) 
 that will implement a generic Genetic Algorithm based on users settings.
