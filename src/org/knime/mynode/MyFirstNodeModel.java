@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.lang.String;
 
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
@@ -97,7 +99,8 @@ public class MyFirstNodeModel extends NodeModel {
     private final SettingsModelDoubleBounded crossoverCount = 
     		new SettingsModelDoubleBounded(MyFirstNodeModel.MUTATION_STR, MyFirstNodeModel.MUTATION_COUNT, 0, 1);
     
-    
+
+	Path filePath; 	//Creates a new temp file that will actually be executed
     
     
 
@@ -135,13 +138,10 @@ public class MyFirstNodeModel extends NodeModel {
     		}
     		currentRow++;
     	}
-    	
-    	Path filePath = Files.createTempFile("script", ".py"); 	//Creates a new temp file that will actually be executed
+    	filePath = Files.createTempFile("script", ".py");
     	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file
     	
-    	ProcessBuilder processBuilder = new ProcessBuilder("python",filePath.toString(),"23","13");  //Builds the process that will execute the script
-    	Process process = processBuilder.start(); 
-    	BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
+    	Individual bestIndividual = geneticAlgorithm();
     	
     	//String testeString = reader.readLine();
     	//reader.close();
@@ -158,14 +158,13 @@ public class MyFirstNodeModel extends NodeModel {
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
         RowKey key = new RowKey("Best individual");
         DataCell[] cells = new DataCell[1];
-        cells[0] = new StringCell(reader.readLine());
+        cells[0] = new StringCell(bestIndividual.getValue());
         DataRow row = new DefaultRow(key, cells);
         container.addRowToTable(row);
         
         exec.checkCanceled();
         /*exec.setProgress(i / (double)m_count.getIntValue(), 
                 "Adding row " + i);*/
-        reader.close();
         // once we are done, we close the container and return its table
         container.close();
         BufferedDataTable out = container.getTable();
@@ -289,17 +288,124 @@ public class MyFirstNodeModel extends NodeModel {
 
     }
     
-    Double runPython(Byte individual, String path) {
+    protected Individual geneticAlgorithm() {
+    	Individual bestIndividual = new Individual();
+    	List<Population> populationList = new ArrayList<Population>();
+    	Population firstPopulation = new Population();
     	
-    	String[] cmdString = {"python", path, individual.toString()};
-    	Double evaluation = 0D;
+    	Random random = new Random();
+    	
+    	int generation = 0;
+    	
+    	//Generates an initial population
+    	do {
+    		
+    		Individual individual = new Individual();
+    	
+    		do {
+    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
+    		}while(individual.getValue().length()<CROMOSSOMES_COUNT);
+    		
+    		firstPopulation.getIndividuals().add(individual);
+    	
+    	}while(firstPopulation.getIndividuals().size() < INDIVIDUAL_COUNT);
+    	
+    	firstPopulation = evaluate(firstPopulation);
+    	
+    	populationList.add(firstPopulation);
+
+		generation++;
+		
+		while (generation < GENERATION_COUNT) {
+    		//Selection
+    		populationList.add(selection(populationList.get(generation)));
+    		//crossover
+    		//mutation
+    		//evaluation
+    		generation++;
+    	}
+		
+		for(Population population : populationList) {
+			if(population.getBestIndividual().getFitness() > bestIndividual.getFitness()) {
+				bestIndividual = population.getBestIndividual();
+			}
+		}
+    	
+    	return bestIndividual;
+    	
+    }
+    
+    Population evaluate(Population population) {
     	try {
-    		evaluation = Double.parseDouble(Runtime.getRuntime().exec(cmdString).toString());
+    		for(Individual individual : population.getIndividuals()) {
+    			ProcessBuilder processBuilder = new ProcessBuilder("python",filePath.toString(),individual.getValue());  //Builds the process that will execute the script
+        		Process process = processBuilder.start(); 
+        		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
+        		individual.setFitness(Double.parseDouble(reader.readLine())); //Set individual fitness
+        		reader.close();
+    		}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    	return evaluation;
+    	return population; //return population with its fitness and individuals evaluated
+    }
+    
+    Population selection(Population population) {
+    	Double cumulative = 0D;
+    	//Calculates the probability of the individual to go to the next generation
+    	for(Individual individual : population.getIndividuals()) {
+    		cumulative += (individual.getFitness()/population.getSumFitness());
+    		individual.setSelectionProbability(cumulative);
+    	}
+    	
+    	Random random = new Random();
+    	Population returnPopulation = new Population();
+    	
+    	//pick the  individuals for the next generation
+    	while(returnPopulation.getIndividuals().size()!=population.getIndividuals().size()){
+    		Double choosen = random.nextDouble();
+    		for(Individual individual : population.getIndividuals()) {
+    			if(individual.getSelectionProbability()<=choosen) {
+    				returnPopulation.getIndividuals().add(individual);
+    				break;
+    			}
+    		}
+    	}
+    	
+    	return returnPopulation;
+    }
+    
+    Population crossover(Population population) {
+    	Population returnPopulation = new Population();
+    	Random random = new Random();
+    	int count = 0;
+    	Individual previousIndividual = new Individual();
+    	for(Individual individual : population.getIndividuals()) {
+    		individual.setSelectionProbability(Math.random());
+    		
+    		if(individual.getSelectionProbability()<CROSSOVER_COUNT) {
+    			if(count <1) {
+    				previousIndividual = individual;
+    				count++;
+    			}else {
+    				int temp = 0;
+    				while(temp < individual.getValue().length()) {
+    					if(Math.random()<CROSSOVER_COUNT) {
+    						//TODO
+    						//ITERATE OVER CHARS IN THE STRINGS TO CROSS THEM
+    						//char character = previousIndividual.getValue(),charAt(2);
+    					}
+    					temp++;
+    				}
+    				count = 0;
+    			}
+    		}else {
+    			returnPopulation.getIndividuals().add(individual);
+    		}
+    		
+    	}
+    	return returnPopulation;
     }
 
 }
