@@ -28,13 +28,20 @@
     </fullDescription>
     
     <ports>
-        <inPort index="0" name="Evaluation Function">Algoritmo implementado em Python para avaliar os indivíduos</inPort>
+        <inPort index="0" name="Evaluation Function">Python script with the Evaluation Function in it</inPort>
         <!-- possibly more input ports here-->
-        <outPort index="0" name="Melhor indivíduo">Retornará o melhor indivíduo para aquela solução</outPort>
+        <outPort index="0" name="Best individual">The best individual</outPort>
         <!-- possibly more output ports here-->
     </ports>    
     <views>
-        <view index="0" name="name of first view">Description of first view...</view>
-        <!--view index="1" name="name of second view">Description of second view...</view-->
+        <view index="0" name="Instructions for the evaluation function">
+			The evaluation function must be codded in python.<br/>
+			And since it will be executed by a Java code there are some rules you should follow:<br/>
+			- The parameter used for the individual that is going to be evaluated is <b>sys.arg[1]</b>, whic will be a string.<br/> 
+			- Manipulate as you wish but make sure to return with <b>sys.stdout.write(foo)</b>, where foo is a string  of bits like <b>"010101"</b><br/>
+			<br/><b>Here's an example:</b><br/>
+			import sys<br/>
+			sys.stdout.write(sys.argv[1])        
+		</view>
     </views>
 </knimeNode>

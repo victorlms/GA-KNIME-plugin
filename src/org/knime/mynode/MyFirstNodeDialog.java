@@ -34,33 +34,37 @@ public class MyFirstNodeDialog extends DefaultNodeSettingsPane {
         				MyFirstNodeModel.CROMOSSOMES_STR,
         				MyFirstNodeModel.CROMOSSOMES_COUNT,
         				0, 500),
-        		"Quantidade de cromossomos", 1, 5));
+        		"Cromossomes", 1, 5));
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
         				MyFirstNodeModel.INDIVIDUAL_STR,
         				MyFirstNodeModel.INDIVIDUAL_COUNT,
         				0, 500),
-        		"Quantidade de indivíduos", 1, 5));
+        		"Individuals", 1, 5));
         createNewGroup("Algorithm Settings:");
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
         				MyFirstNodeModel.GENERATION_STR,
         				MyFirstNodeModel.GENERATION_COUNT,
         				0, 500),
-        		"Quantidade de gerações", 1, 5));
+        		"Generations", 1, 5));
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelDoubleBounded(
         				MyFirstNodeModel.CROSSOVER_STR,
         				MyFirstNodeModel.CROSSOVER_COUNT,
         				0, 500),
-        		"Taxa de cruzamento", 1, 5));
+        		"Crossover rate", 1, 5));
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelDoubleBounded(
         				MyFirstNodeModel.MUTATION_STR,
         				MyFirstNodeModel.MUTATION_COUNT,
         				0, 500),
-        		"Taxa de mutação", 1, 5));
-        addDialogComponent(new DialogComponentBoolean(new SettingsModelBoolean(MyFirstNodeModel.ELITISM_STR, MyFirstNodeModel.ELITISM_STATE), "Elitismo"));
+        		"Mutation rate", 1, 5));
+        addDialogComponent(new DialogComponentBoolean(
+        		new SettingsModelBoolean(
+        				MyFirstNodeModel.ELITISM_STR,
+        				MyFirstNodeModel.ELITISM_STATE),
+        				"Elitism"));
         
     }
 }

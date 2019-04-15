@@ -156,30 +156,16 @@ public class MyFirstNodeModel extends NodeModel {
         // Note, this container can also handle arbitrary big data tables, it
         // will buffer to disc if necessary.
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
-        // let's add m_count rows to it
-        RowKey key = new RowKey("");
+        RowKey key = new RowKey("Best individual");
         DataCell[] cells = new DataCell[1];
         cells[0] = new StringCell(reader.readLine());
         DataRow row = new DefaultRow(key, cells);
         container.addRowToTable(row);
+        
         exec.checkCanceled();
+        /*exec.setProgress(i / (double)m_count.getIntValue(), 
+                "Adding row " + i);*/
         reader.close();
-        /*for (int i = 0; i < m_count.getIntValue(); i++) {
-            RowKey key = new RowKey("Row " + i);
-            // the cells of the current row, the types of the cells must match
-            // the column spec (see above)
-            DataCell[] cells = new DataCell[3];
-            cells[0] = new StringCell("String_" + i); 
-            cells[1] = new DoubleCell(0.5 * i); 
-            cells[2] = new IntCell(i);
-            DataRow row = new DefaultRow(key, cells);
-            container.addRowToTable(row);
-            
-            // check if the execution monitor was canceled
-            
-            exec.setProgress(i / (double)m_count.getIntValue(), 
-                "Adding row " + i);
-        }*/
         // once we are done, we close the container and return its table
         container.close();
         BufferedDataTable out = container.getTable();
