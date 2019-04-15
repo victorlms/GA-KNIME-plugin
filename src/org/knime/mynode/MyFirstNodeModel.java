@@ -1,9 +1,16 @@
 package org.knime.mynode;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
@@ -22,6 +29,8 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDoubleBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
+
+
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
@@ -29,7 +38,6 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
-
 
 /**
  * This is the model implementation of MyFirst.
@@ -113,10 +121,7 @@ public class MyFirstNodeModel extends NodeModel {
 		int rowCount = (int) table.size();
     	int currentRow = 0;
 
-    	File file = new File("");
-    	file.createNewFile();
-    	file.setWritable(true);
-    	System.out.println(file.getPath());
+    	List<String> lines = new ArrayList<>();
     	
     	for(DataRow row : table) {
     		exec.checkCanceled();
@@ -125,21 +130,26 @@ public class MyFirstNodeModel extends NodeModel {
     		for(int i = 0; i < row.getNumCells(); i++) {
     			DataCell cell = row.getCell(i);
     			if(!cell.isMissing()) {
-    				file = new File(file.toString() + cell.toString());
-    				System.out.println("COMANDO " + file.toString());
+    				lines.add(cell.toString());
     			}
     		}
     		currentRow++;
     	}
+    	
+    	Path filePath = Files.createTempFile("script", ".py"); 	//Creates a new temp file that will actually be executed
+    	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file
+    	
+    	ProcessBuilder processBuilder = new ProcessBuilder("python",filePath.toString(),"23","13");  //Builds the process that will execute the script
+    	Process process = processBuilder.start(); 
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
+    	
+    	//String testeString = reader.readLine();
+    	//reader.close();
         // the data table spec of the single output table, 
         // the table will have three columns:
-        DataColumnSpec[] allColSpecs = new DataColumnSpec[3];
+        DataColumnSpec[] allColSpecs = new DataColumnSpec[1];
         allColSpecs[0] = 
             new DataColumnSpecCreator("Column 0", StringCell.TYPE).createSpec();
-        allColSpecs[1] = 
-            new DataColumnSpecCreator("Column 1", DoubleCell.TYPE).createSpec();
-        allColSpecs[2] = 
-            new DataColumnSpecCreator("Column 2", IntCell.TYPE).createSpec();
         DataTableSpec outputSpec = new DataTableSpec(allColSpecs);
         // the execution context will provide us with storage capacity, in this
         // case a data container to which we will add rows sequentially
@@ -147,6 +157,13 @@ public class MyFirstNodeModel extends NodeModel {
         // will buffer to disc if necessary.
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
         // let's add m_count rows to it
+        RowKey key = new RowKey("");
+        DataCell[] cells = new DataCell[1];
+        cells[0] = new StringCell(reader.readLine());
+        DataRow row = new DefaultRow(key, cells);
+        container.addRowToTable(row);
+        exec.checkCanceled();
+        reader.close();
         /*for (int i = 0; i < m_count.getIntValue(); i++) {
             RowKey key = new RowKey("Row " + i);
             // the cells of the current row, the types of the cells must match
@@ -159,7 +176,7 @@ public class MyFirstNodeModel extends NodeModel {
             container.addRowToTable(row);
             
             // check if the execution monitor was canceled
-            exec.checkCanceled();
+            
             exec.setProgress(i / (double)m_count.getIntValue(), 
                 "Adding row " + i);
         }*/
