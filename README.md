@@ -5,6 +5,16 @@
 The main idea is to create a new node to be included into [KNIME platform](https://www.knime.com/) 
 that will implement a generic Genetic Algorithm based on users settings.
 
+**That's how it must be structured</br>**
+![workflow](https://github.com/victorlms/GA-KNIME-plugin/blob/Development/images/workflow.png)</br>
+
+**This is the settings windows</br>**
+![settings](https://github.com/victorlms/GA-KNIME-plugin/blob/Development/images/settings.png)</br>
+
+**And this is the output, where it should specify the best individual</br>**
+![output](https://github.com/victorlms/GA-KNIME-plugin/blob/Development/images/output.png)</br>
+
+
 The user will be able to set main settings which are:
 - Number of cromossomes of the individuals
 - Number of individuals in the population
