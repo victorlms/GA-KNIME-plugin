@@ -383,9 +383,46 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	
     	Population returnPopulation = new Population();
     	List<Individual> individualList = new ArrayList<Individual>();
+    	List<Double> wheelList = new ArrayList<Double>();
+    	
+    	/*while(wheelList.size()<this.individualCount.getIntValue()) {
+    		wheelList.add(Math.random());
+    	}
+    	while(individualList.size()!= population.getIndividuals().size()) {
+	    	for(Double d : wheelList) {
+	    		for(Individual individual : population.getIndividuals()) {
+	    			if(individual.getSelectionProbability() > floor && individual.getSelectionProbability() < d) {
+	    				Individual newIndividual = new Individual(individual.getValue(),individual.getFitness(),individual.getSelectionProbability());
+	    				individualList.add(newIndividual);
+	    				floor = individual.getSelectionProbability();
+	    				break;
+	    			}
+	    		}
+	    		if(individualList.size() == population.getIndividuals().size()) {
+	    			break;
+	    		}
+	    	}
+    	}*/
+    	
+    	Double floor = 0D;
+    	for(int i = 0; i < this.individualCount.getIntValue(); i++) {
+	    	Double rand = Math.random();
+	    	int index = 0;
+	    	int last = 0;
+	    	while(floor < rand) {
+	    		floor += population.getIndividuals().get(index).getSelectionProbability();
+	    		last = index;
+	    		index++;
+	    	}
+	    	individualList.add(new Individual(
+    							population.getIndividuals().get(last).getValue(),
+    							population.getIndividuals().get(last).getFitness(), 
+    							population.getIndividuals().get(last).getSelectionProbability()));
+	    	
+    	}
     	
     	//pick the  individuals for the next generation
-    	while(individualList.size()!=population.getIndividuals().size()){
+    	/*while(individualList.size()!=population.getIndividuals().size()){
     		for(Individual individual : population.getIndividuals()) {
     			if(individual.getSelectionProbability()<=Math.random()) {
     				Individual newIndividual = new Individual(individual.getValue(),individual.getFitness(),individual.getSelectionProbability());
@@ -393,7 +430,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				break;
     			}
     		}
-    	}
+    	}*/
     	returnPopulation.setIndividuals(individualList);
     	return returnPopulation;
     }
@@ -431,9 +468,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
 					returnPopulation.getIndividuals().add(previousIndividual);
 					returnPopulation.getIndividuals().add(individual);		
+					previousIndividual= new Individual();
+					count = 0;
     			}
-    			individual = new Individual();
-				count = 0;
     		}else {
     			//IF THE INDIVIDUAL IS NOT CHOOSEN TO BE CROSSOVERED, IT GOES RIGHT TO THE NEXT POPULATION
     			returnPopulation.getIndividuals().add(individual); 	
