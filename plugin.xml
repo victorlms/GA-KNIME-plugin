@@ -18,8 +18,8 @@
          point="org.knime.workbench.repository.nodes">
       <node
             category-path="/"
-            factory-class="org.knime.mynode.MyFirstNodeFactory"
-            id="org.knime.mynode.MyFirstNodeFactory"/>
+            factory-class="org.knime.geneticalgoritm.GeneticAlgorithmNodeFactory"
+            id="org.knime.geneticalgoritm.GeneticAlgorithmNodeFactory"/>
    </extension>
    
 </plugin>

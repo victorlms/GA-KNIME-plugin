@@ -1,21 +1,21 @@
-package org.knime.mynode;
+package org.knime.geneticalgoritm;
 
 import org.knime.core.node.NodeView;
 
 /**
- * <code>NodeView</code> for the "MyFirst" Node.
- * Node teste para genética
+ * <code>NodeView</code> for the "GeneticAlgorithm" Node.
+ * Node will implement a generic Genetic Algorithm
  *
  * @author Victor
  */
-public class MyFirstNodeView extends NodeView<MyFirstNodeModel> {
+public class GeneticAlgorithmNodeView extends NodeView<GeneticAlgorithmNodeModel> {
 
     /**
      * Creates a new view.
      * 
-     * @param nodeModel The model (class: {@link MyFirstNodeModel})
+     * @param nodeModel The model (class: {@link GeneticAlgorithmNodeModel})
      */
-    protected MyFirstNodeView(final MyFirstNodeModel nodeModel) {
+    protected GeneticAlgorithmNodeView(final GeneticAlgorithmNodeModel nodeModel) {
         super(nodeModel);
 
         // TODO instantiate the components of the view here.
@@ -30,8 +30,8 @@ public class MyFirstNodeView extends NodeView<MyFirstNodeModel> {
 
         // TODO retrieve the new model from your nodemodel and 
         // update the view.
-        MyFirstNodeModel nodeModel = 
-            (MyFirstNodeModel)getNodeModel();
+        GeneticAlgorithmNodeModel nodeModel = 
+            (GeneticAlgorithmNodeModel)getNodeModel();
         assert nodeModel != null;
         
         // be aware of a possibly not executed nodeModel! The data you retrieve

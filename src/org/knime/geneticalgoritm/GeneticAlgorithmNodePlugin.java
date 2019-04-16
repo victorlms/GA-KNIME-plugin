@@ -2,7 +2,7 @@
  * $Revision$ $Date$ $Author$
  *
  */
-package org.knime.mynode;
+package org.knime.geneticalgoritm;
 
 import org.eclipse.core.runtime.Plugin;
 import org.osgi.framework.BundleContext;
@@ -16,14 +16,14 @@ import org.osgi.framework.BundleContext;
  *
  * @author Victor
  */
-public class MyFirstNodePlugin extends Plugin {
+public class GeneticAlgorithmNodePlugin extends Plugin {
     // The shared instance.
-    private static MyFirstNodePlugin plugin;
+    private static GeneticAlgorithmNodePlugin plugin;
 
     /**
      * The constructor.
      */
-    public MyFirstNodePlugin() {
+    public GeneticAlgorithmNodePlugin() {
         super();
         plugin = this;
     }
@@ -57,7 +57,7 @@ public class MyFirstNodePlugin extends Plugin {
      * 
      * @return Singleton instance of the Plugin
      */
-    public static MyFirstNodePlugin getDefault() {
+    public static GeneticAlgorithmNodePlugin getDefault() {
         return plugin;
     }
 

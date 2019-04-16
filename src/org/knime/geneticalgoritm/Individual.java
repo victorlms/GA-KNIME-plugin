@@ -1,4 +1,4 @@
-package org.knime.mynode;
+package org.knime.geneticalgoritm;
 
 public class Individual {
 
@@ -7,14 +7,12 @@ public class Individual {
 	private Double selectionProbability;
 	
 	public Individual(String value, Double fitness, Double selectionProbability) {
-		super();
 		this.value = value;
 		this.fitness = fitness;
 		this.selectionProbability = selectionProbability;
 	}
 	
 	public Individual() {
-		super();
 		this.value = "";
 		this.fitness = 0D;
 		this.selectionProbability = 0D;
