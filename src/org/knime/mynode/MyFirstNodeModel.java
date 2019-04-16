@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Random;
 import java.lang.String;
 
+
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
@@ -32,6 +33,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDoubleBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
 
+import sun.text.normalizer.Replaceable;
 
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
@@ -40,6 +42,7 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+
 
 /**
  * This is the model implementation of MyFirst.
@@ -62,6 +65,7 @@ public class MyFirstNodeModel extends NodeModel {
     static final String MUTATION_STR = "Mutation rate";
     static final String CROSSOVER_STR = "Crossover rate";
     static final String ELITISM_STR = "Elitism";
+    static final String SCRIPT_STR = "Path to Python script";
 	
     /** initial default count value. */
     static final int INDIVIDUAL_COUNT = 100;
@@ -70,6 +74,9 @@ public class MyFirstNodeModel extends NodeModel {
     static final boolean ELITISM_STATE = true;
     static final double MUTATION_COUNT = 0.01;
     static final double CROSSOVER_COUNT = 0.6;
+
+    static final String SCRIPT_PATH = "";
+
 
     // example value: the models count variable filled from the dialog 
     // and used in the models execution method. The default components of the
@@ -98,9 +105,8 @@ public class MyFirstNodeModel extends NodeModel {
 
     private final SettingsModelDoubleBounded crossoverCount = 
     		new SettingsModelDoubleBounded(MyFirstNodeModel.MUTATION_STR, MyFirstNodeModel.MUTATION_COUNT, 0, 1);
-    
 
-	Path filePath; 	//Creates a new temp file that will actually be executed
+	private List<String> lines = new ArrayList<>();
     
     
 
@@ -120,11 +126,12 @@ public class MyFirstNodeModel extends NodeModel {
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
             final ExecutionContext exec) throws Exception {
 
+
     	BufferedDataTable table = inData[0];
 		int rowCount = (int) table.size();
     	int currentRow = 0;
 
-    	List<String> lines = new ArrayList<>();
+    	
     	
     	for(DataRow row : table) {
     		exec.checkCanceled();
@@ -138,8 +145,6 @@ public class MyFirstNodeModel extends NodeModel {
     		}
     		currentRow++;
     	}
-    	filePath = Files.createTempFile("script", ".py");
-    	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file
     	
     	Individual bestIndividual = geneticAlgorithm();
     	
@@ -289,8 +294,11 @@ public class MyFirstNodeModel extends NodeModel {
     }
     
     protected Individual geneticAlgorithm() {
+    	
     	Individual bestIndividual = new Individual();
+    	
     	List<Population> populationList = new ArrayList<Population>();
+    	
     	Population firstPopulation = new Population();
     	
     	Random random = new Random();
@@ -314,15 +322,20 @@ public class MyFirstNodeModel extends NodeModel {
     	
     	populationList.add(firstPopulation);
 
-		generation++;
 		
 		while (generation < GENERATION_COUNT) {
     		//Selection
     		populationList.add(selection(populationList.get(generation)));
-    		//crossover
-    		//mutation
-    		//evaluation
     		generation++;
+    		
+    		//crossover
+    		populationList.set(generation, crossover(populationList.get(generation)));
+    		
+    		//mutation
+    		populationList.set(generation, mutation(populationList.get(generation)));
+    		
+    		//evaluation
+    		populationList.set(generation, evaluate(populationList.get(generation)));
     	}
 		
 		for(Population population : populationList) {
@@ -338,11 +351,19 @@ public class MyFirstNodeModel extends NodeModel {
     Population evaluate(Population population) {
     	try {
     		for(Individual individual : population.getIndividuals()) {
-    			ProcessBuilder processBuilder = new ProcessBuilder("python",filePath.toString(),individual.getValue());  //Builds the process that will execute the script
+    			/*Path filePath; 	//Creates a new temp file that will actually be executed
+        		filePath = Files.createTempFile("script", ".py");
+            	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file*/
+    			ProcessBuilder processBuilder = new ProcessBuilder("python",SCRIPT_PATH,individual.getValue());  //Builds the process that will execute the script
         		Process process = processBuilder.start(); 
         		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
-        		individual.setFitness(Double.parseDouble(reader.readLine())); //Set individual fitness
+        		String str = reader.readLine();
+        		individual.setFitness(Double.parseDouble(str)); //Set individual fitness
+        		//Files.deleteIfExists(filePath);
         		reader.close();
+        		
+        		PythonInterpreter python = new PythonInterpreter();
+        		python.exec(lines.toString());
     		}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -379,33 +400,73 @@ public class MyFirstNodeModel extends NodeModel {
     Population crossover(Population population) {
     	Population returnPopulation = new Population();
     	Random random = new Random();
-    	int count = 0;
-    	Individual previousIndividual = new Individual();
+    	int count = 0; //VERIFIES IF THERE'S ALREADY A INDIVIDUAL SELECTED TO THE CROSSOVER
+    	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
     	for(Individual individual : population.getIndividuals()) {
-    		individual.setSelectionProbability(Math.random());
     		
-    		if(individual.getSelectionProbability()<CROSSOVER_COUNT) {
-    			if(count <1) {
+    		if(Math.random()<CROSSOVER_COUNT) {
+    			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
     				previousIndividual = individual;
     				count++;
-    			}else {
-    				int temp = 0;
-    				while(temp < individual.getValue().length()) {
-    					if(Math.random()<CROSSOVER_COUNT) {
-    						//TODO
-    						//ITERATE OVER CHARS IN THE STRINGS TO CROSS THEM
-    						//char character = previousIndividual.getValue(),charAt(2);
-    					}
-    					temp++;
-    				}
-    				count = 0;
+    			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
+					//TODO
+					char[] previousIndividualChars = previousIndividual.getValue().toCharArray();
+					char[] individualChars = individual.getValue().toCharArray();
+					char aux;
+					int slice = individualChars.length/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
+					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
+						if(i >= slice) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
+							aux = previousIndividualChars[i];
+							previousIndividualChars[i] = individualChars[i];
+							individualChars[i] = aux;
+						}
+					}
+					previousIndividual.setValue(previousIndividualChars.toString());
+					individual.setValue(individualChars.toString());
+					
+					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
+					returnPopulation.getIndividuals().add(previousIndividual);
+					returnPopulation.getIndividuals().add(individual);		
     			}
+    			individual = new Individual();
+				count = 0;
     		}else {
-    			returnPopulation.getIndividuals().add(individual);
+    			//IF THE INDIVIDUAL IS NOT CHOOSEN TO BE CROSSOVERED, IT GOES RIGHT TO THE NEXT POPULATION
+    			returnPopulation.getIndividuals().add(individual); 	
     		}
     		
     	}
     	return returnPopulation;
+    }
+    
+    Population mutation(Population population) {
+    	
+    	Population returnPopulation = new Population();
+    	
+    	for(Individual individual : population.getIndividuals()) {
+    		
+    		if(Math.random()<MUTATION_COUNT) {
+    			
+				char[] individualChars = individual.getValue().toCharArray();
+				
+				for(char c : individualChars) { 			//ITERATE OVER THE CROMOSSOMES
+					if(Math.random()<MUTATION_COUNT) {		//SWAP THE CROMOSSOMES
+						if(c == '0') {
+							c = '1';
+						}else {
+							c = '0';
+						}
+					}
+				}
+				
+				individual.setValue(individualChars.toString());
+				returnPopulation.getIndividuals().add(individual);
+    		}else {
+    			returnPopulation.getIndividuals().add(individual);
+    		}
+    	}
+    	
+    	return returnPopulation; 
     }
 
 }

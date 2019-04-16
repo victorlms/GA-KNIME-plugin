@@ -10,16 +10,14 @@ public class Population {
 	
 	
 	
-	public Population(List<Individual> individuals, Individual bestIndividual) {
+	public Population(List<Individual> individuals) {
 		super();
 		this.individuals = individuals;
-		this.bestIndividual = bestIndividual;
 	}
 	
 	public Population() {
 		super();
 		this.individuals = new ArrayList<Individual>();
-		this.bestIndividual = new Individual();
 	}
 	
 	public List<Individual> getIndividuals() {
@@ -31,13 +29,15 @@ public class Population {
 	}
 	
 	public Individual getBestIndividual() {
+		Individual bestIndividual = new Individual();
+		for(Individual individual : this.individuals) {
+			if(individual.getFitness()>bestIndividual.getFitness()) {
+				bestIndividual = individual;
+			}
+		}
 		return bestIndividual;
 	}
-	
-	public void setBestIndividual(Individual bestIndividual) {
-		this.bestIndividual = bestIndividual;
-	}
-	
+		
 	public Double getSumFitness() {
 		Double sum = 0D;
 		for(Individual individual : individuals) {

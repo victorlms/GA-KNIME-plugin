@@ -3,9 +3,11 @@ package org.knime.mynode;
 import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
 import org.knime.core.node.defaultnodesettings.DialogComponentBoolean;
 import org.knime.core.node.defaultnodesettings.DialogComponentNumber;
+import org.knime.core.node.defaultnodesettings.DialogComponentString;
 import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDoubleBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
  * <code>NodeDialog</code> for the "MyFirst" Node.
@@ -65,6 +67,11 @@ public class MyFirstNodeDialog extends DefaultNodeSettingsPane {
         				MyFirstNodeModel.ELITISM_STR,
         				MyFirstNodeModel.ELITISM_STATE),
         				"Elitism"));
+        createNewGroup("Evaluation Function:");
+        addDialogComponent(new DialogComponentString(
+        		new SettingsModelString(MyFirstNodeModel.SCRIPT_STR, 
+        				MyFirstNodeModel.SCRIPT_PATH),
+        				"Python script path:"));
         
     }
 }
