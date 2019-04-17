@@ -39,4 +39,4 @@ was to reference a Python script that need to follow some rules:
 - The input is the individual that is going to be evaluated
 - The individual will come in a string format, since it's inputed by the OS **USE*****sys.arg[1]*** **TO REFERENCE IT**
 - The output **MUST BE IN A STRING FORMAT USING:** ***sys.stdout.write(individual_fitness_as_string)***
-- Following that, you can assign ***sys.argv[1]*** to a variable ***i.e. individual = sys.argv[1]***and manipulate it as you wish
+- Following that, you can assign ***sys.argv[1]*** to a variable ***i.e. individual = sys.argv[1]*** and manipulate it as you wish
