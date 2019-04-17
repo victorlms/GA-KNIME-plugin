@@ -99,10 +99,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     private final SettingsModelString path = 
     		new SettingsModelString(GeneticAlgorithmNodeModel.SCRIPT_STR, GeneticAlgorithmNodeModel.SCRIPT_PATH);
 
-	private List<String> lines = new ArrayList<>();
-    
-    
-
     /**
      * Constructor for the node model.
      */
@@ -118,53 +114,48 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
             final ExecutionContext exec) throws Exception {
-
-
-    	/*BufferedDataTable table = inData[0];
-		int rowCount = (int) table.size();
-    	int currentRow = 0;
-
+    
+    	List<Population> populations = new ArrayList<Population>();
     	
-    	
-    	for(DataRow row : table) {
-    		exec.checkCanceled();
-    		exec.setProgress((double) currentRow/rowCount, 
-    				"Processing now " + currentRow);
-    		for(int i = 0; i < row.getNumCells(); i++) {
-    			DataCell cell = row.getCell(i);
-    			if(!cell.isMissing()) {
-    				lines.add(cell.toString());
-    			}
-    		}
-    		currentRow++;
-    	}*/
-    	
-    	Individual bestIndividual = geneticAlgorithm(exec);
-    	
+    	//Individual bestIndividual = geneticAlgorithm(exec);
+    	populations = geneticAlgorithm(exec);
     	//String testeString = reader.readLine();
     	//reader.close();
         // the data table spec of the single output table, 
         // the table will have three columns:
-        DataColumnSpec[] allColSpecs = new DataColumnSpec[2];
+//        DataColumnSpec[] allColSpecs = new DataColumnSpec[2];
+        DataColumnSpec[] allColSpecs = new DataColumnSpec[3];
+        
         allColSpecs[0] = 
-            new DataColumnSpecCreator("Value", StringCell.TYPE).createSpec();
+                new DataColumnSpecCreator("Average Fitness", DoubleCell.TYPE).createSpec();
         allColSpecs[1] = 
-                new DataColumnSpecCreator("Fitness", StringCell.TYPE).createSpec();
+        		new DataColumnSpecCreator("Best Individual", StringCell.TYPE).createSpec();
+        allColSpecs[2] = 
+        		new DataColumnSpecCreator("Best Fitness", DoubleCell.TYPE).createSpec();
         DataTableSpec outputSpec = new DataTableSpec(allColSpecs);
         // the execution context will provide us with storage capacity, in this
         // case a data container to which we will add rows sequentially
         // Note, this container can also handle arbitrary big data tables, it
         // will buffer to disc if necessary.
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
-        RowKey individualKey = new RowKey("Best individual");
+        
         //RowKey fitnessKey = new RowKey("Fitness");
-        DataCell[] cells = new DataCell[2];
-        cells[0] = new StringCell(bestIndividual.getValue());
-        cells[1] = new StringCell(bestIndividual.getFitness().toString());
-        DataRow individualRow = new DefaultRow(individualKey, cells);
-        //DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
-        container.addRowToTable(individualRow);
-        //container.addRowToTable(fitnessRow);
+        Integer index = 1;
+        
+        for(Population population : populations) {
+        	exec.checkCanceled();
+        	RowKey individualKey = new RowKey("Population "+index+" average fitness");
+        	DataCell[] cells = new DataCell[3];
+        	//cells[0] = new StringCell((index).toString());
+        	cells[0] = new DoubleCell(population.getAverageFitness());
+        	cells[1] = new StringCell(population.getBestIndividual().getValue().toString());
+        	cells[2] = new DoubleCell(population.getBestIndividual().getFitness());
+        	DataRow individualRow = new DefaultRow(individualKey, cells);
+        	//DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
+        	container.addRowToTable(individualRow);
+        	//container.addRowToTable(fitnessRow);
+        	index++;
+        }
         
         exec.checkCanceled();
         /*exec.setProgress(i / (double)m_count.getIntValue(), 
@@ -295,7 +286,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 
     }
     
-    protected Individual geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
+//    protected Individual geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
+    	protected List<Population>geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
     	
     	Individual bestIndividual = new Individual();
     	
@@ -348,7 +340,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			}
 		}
     	
-    	return bestIndividual;
+//    	return bestIndividual;
+    	return populationList;
     	
     }
     
@@ -405,11 +398,11 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	}*/
     	
     	Double floor = 0D;
-    	for(int i = 0; i < this.individualCount.getIntValue(); i++) {
+    	for(int i = 0; i < this.individualCount.getIntValue(); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
 	    	Double rand = Math.random();
 	    	int index = 0;
 	    	int last = 0;
-	    	while(floor < rand) {
+	    	while(floor < rand) { //FIND THE INDIVIDUAL CHOOSEN
 	    		floor += population.getIndividuals().get(index).getSelectionProbability();
 	    		last = index;
 	    		index++;
@@ -421,16 +414,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	    	
     	}
     	
-    	//pick the  individuals for the next generation
-    	/*while(individualList.size()!=population.getIndividuals().size()){
-    		for(Individual individual : population.getIndividuals()) {
-    			if(individual.getSelectionProbability()<=Math.random()) {
-    				Individual newIndividual = new Individual(individual.getValue(),individual.getFitness(),individual.getSelectionProbability());
-    				individualList.add(newIndividual);
-    				break;
-    			}
-    		}
-    	}*/
     	returnPopulation.setIndividuals(individualList);
     	return returnPopulation;
     }
