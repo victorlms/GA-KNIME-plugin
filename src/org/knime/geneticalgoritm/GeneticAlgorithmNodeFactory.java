@@ -1,24 +1,24 @@
-package org.knime.mynode;
+package org.knime.geneticalgoritm;
 
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeView;
 
 /**
- * <code>NodeFactory</code> for the "MyFirst" Node.
- * Node teste para genética
+ * <code>NodeFactory</code> for the "GeneticAlgorithm" Node.
+ * Node will implement a generic Genetic Algorithm
  *
  * @author Victor
  */
-public class MyFirstNodeFactory 
-        extends NodeFactory<MyFirstNodeModel> {
+public class GeneticAlgorithmNodeFactory 
+        extends NodeFactory<GeneticAlgorithmNodeModel> {
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public MyFirstNodeModel createNodeModel() {
-        return new MyFirstNodeModel();
+    public GeneticAlgorithmNodeModel createNodeModel() {
+        return new GeneticAlgorithmNodeModel();
     }
 
     /**
@@ -33,9 +33,9 @@ public class MyFirstNodeFactory
      * {@inheritDoc}
      */
     @Override
-    public NodeView<MyFirstNodeModel> createNodeView(final int viewIndex,
-            final MyFirstNodeModel nodeModel) {
-        return new MyFirstNodeView(nodeModel);
+    public NodeView<GeneticAlgorithmNodeModel> createNodeView(final int viewIndex,
+            final GeneticAlgorithmNodeModel nodeModel) {
+        return new GeneticAlgorithmNodeView(nodeModel);
     }
 
     /**
@@ -51,7 +51,7 @@ public class MyFirstNodeFactory
      */
     @Override
     public NodeDialogPane createNodeDialogPane() {
-        return new MyFirstNodeDialog();
+        return new GeneticAlgorithmNodeDialog();
     }
 
 }
