@@ -9,14 +9,14 @@ that will implement a generic Genetic Algorithm based on users settings.
 ![workflow](https://github.com/victorlms/GA-KNIME-plugin/blob/master/images/new_workflow.png)</br>
 
 **This is the settings windows</br>**
-![settings](https://github.com/victorlms/GA-KNIME-plugin/blob/Master/images/new_settings.png)</br>
+![settings](https://github.com/victorlms/GA-KNIME-plugin/blob/master/images/new_settings.png)</br>
 
 **This is the output, where it specify the best individual fitness from each population as it's average fitness</br>**
-![output](https://github.com/victorlms/GA-KNIME-plugin/blob/Master/images/new_output.png)</br>
+![output](https://github.com/victorlms/GA-KNIME-plugin/blob/master/images/new_output.png)</br>
 
 **And this is the graphic output, where it should specify the best individual</br>**
 ***We can see that the evaluation function was poorly implemented, but it was just for testing***
-![output](https://github.com/victorlms/GA-KNIME-plugin/blob/Master/images/new_graphic.png)</br>
+![output](https://github.com/victorlms/GA-KNIME-plugin/blob/master/images/new_graphic.png)</br>
 
 
 The user will be able to set main settings which are:
