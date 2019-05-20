@@ -16,10 +16,16 @@
    
    <extension
          point="org.knime.workbench.repository.nodes">
-      <node
+      		<node
             category-path="/"
             factory-class="org.knime.geneticalgoritm.GeneticAlgorithmNodeFactory"
             id="org.knime.geneticalgoritm.GeneticAlgorithmNodeFactory"/>
+    		<node
+            category-path="/"
+            factory-class="org.knime.geneticalgoritm.IndividualSettingsFactory"
+            name="Individuals settings"
+            id="org.knime.geneticalgoritm.IndividualSettingsFactory"/>
    </extension>
    
 </plugin>
+	

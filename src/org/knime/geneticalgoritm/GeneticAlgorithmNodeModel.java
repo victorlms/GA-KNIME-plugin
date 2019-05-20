@@ -114,7 +114,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
             final ExecutionContext exec) throws Exception {
-    
+
     	List<Population> populations = new ArrayList<Population>();
     	
     	//Individual bestIndividual = geneticAlgorithm(exec);
