@@ -1,9 +1,16 @@
 package org.knime.geneticalgoritm;
 
+import java.awt.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
 import org.knime.core.node.defaultnodesettings.DialogComponentBoolean;
+import org.knime.core.node.defaultnodesettings.DialogComponentButtonGroup;
 import org.knime.core.node.defaultnodesettings.DialogComponentNumber;
 import org.knime.core.node.defaultnodesettings.DialogComponentString;
+import org.knime.core.node.defaultnodesettings.DialogComponentStringListSelection;
+import org.knime.core.node.defaultnodesettings.DialogComponentStringSelection;
 import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDoubleBounded;
 import org.knime.core.node.defaultnodesettings.SettingsModelIntegerBounded;
@@ -43,6 +50,31 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				GeneticAlgorithmNodeModel.INDIVIDUAL_COUNT,
         				1, 10000),
         		"Individuals", 1 ));
+        addDialogComponent(new DialogComponentString(
+        		new SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR, 
+        				GeneticAlgorithmNodeModel.GENE_SYMBOLS),
+        		"Gene Symbols"));
+        
+        createNewGroup("Operators Settings");
+        setHorizontalPlacement(true);
+        addDialogComponent(new DialogComponentNumber(
+        		new SettingsModelDoubleBounded(
+        				GeneticAlgorithmNodeModel.CROSSOVER_STR,
+        				GeneticAlgorithmNodeModel.CROSSOVER_COUNT,
+        				0, 1),
+        		"Crossover rate", 0.01));
+        addDialogComponent(new DialogComponentStringSelection(
+        		new SettingsModelString(GeneticAlgorithmNodeModel.CROSSOVER_TYPE_STR,
+        				GeneticAlgorithmNodeModel.CROSSOVER_TYPE),
+        		"Crossover type", "Single point","Double point","Uniform"));
+
+        setHorizontalPlacement(false);
+        addDialogComponent(new DialogComponentNumber(
+        		new SettingsModelDoubleBounded(
+        				GeneticAlgorithmNodeModel.MUTATION_STR,
+        				GeneticAlgorithmNodeModel.MUTATION_COUNT,
+        				0, 1),
+        		"Mutation rate", 0.01));
         createNewGroup("Algorithm Settings:");
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
@@ -50,23 +82,12 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				GeneticAlgorithmNodeModel.GENERATION_COUNT,
         				1, 10000),
         		"Generations", 1));
-        addDialogComponent(new DialogComponentNumber(
-        		new SettingsModelDoubleBounded(
-        				GeneticAlgorithmNodeModel.CROSSOVER_STR,
-        				GeneticAlgorithmNodeModel.CROSSOVER_COUNT,
-        				0, 1),
-        		"Crossover rate", 0.01));
-        addDialogComponent(new DialogComponentNumber(
-        		new SettingsModelDoubleBounded(
-        				GeneticAlgorithmNodeModel.MUTATION_STR,
-        				GeneticAlgorithmNodeModel.MUTATION_COUNT,
-        				0, 1),
-        		"Mutation rate", 0.01));
         addDialogComponent(new DialogComponentBoolean(
         		new SettingsModelBoolean(
         				GeneticAlgorithmNodeModel.ELITISM_STR,
         				GeneticAlgorithmNodeModel.ELITISM_STATE),
         				"Elitism"));
+        
         createNewGroup("Evaluation Function:");
         addDialogComponent(new DialogComponentString(
         		new SettingsModelString(GeneticAlgorithmNodeModel.SCRIPT_STR, 

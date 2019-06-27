@@ -56,6 +56,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     static final String CROSSOVER_STR = "Crossover rate";
     static final String ELITISM_STR = "Elitism";
     static final String SCRIPT_STR = "Path to Python script";
+    static final String CROSSOVER_TYPE_STR = "Crossover type";
+    static final String GENE_SYMBOLS_STR = "Gene symbols";
 	
     /** initial default count value. */
     static final int INDIVIDUAL_COUNT = 100;
@@ -64,7 +66,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     static final boolean ELITISM_STATE = true;
     static final double MUTATION_COUNT = 0.01;
     static final double CROSSOVER_COUNT = 0.6;
-
+    static final String CROSSOVER_TYPE = "single";
+    static final String GENE_SYMBOLS = "0,1";
+    
     static final String SCRIPT_PATH = "";
 
 
@@ -99,6 +103,11 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     private final SettingsModelString path = 
     		new SettingsModelString(GeneticAlgorithmNodeModel.SCRIPT_STR, GeneticAlgorithmNodeModel.SCRIPT_PATH);
 
+    private SettingsModelString crossoverType = 
+    		new SettingsModelString(GeneticAlgorithmNodeModel.CROSSOVER_TYPE_STR, GeneticAlgorithmNodeModel.CROSSOVER_TYPE);
+    
+    private SettingsModelString geneSymbols = 
+    		new SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR, GeneticAlgorithmNodeModel.GENE_SYMBOLS);
     /**
      * Constructor for the node model.
      */
@@ -116,7 +125,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
             final ExecutionContext exec) throws Exception {
     
     	List<Population> populations = new ArrayList<Population>();
-    	
     	//Individual bestIndividual = geneticAlgorithm(exec);
     	populations = geneticAlgorithm(exec);
     	//String testeString = reader.readLine();
@@ -207,7 +215,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         mutationCount.saveSettingsTo(settings);
         elitism.saveSettingsTo(settings);
         path.saveSettingsTo(settings);
-
+        crossoverType.saveSettingsTo(settings);
+        geneSymbols.saveSettingsTo(settings);
     }
 
     /**
@@ -228,6 +237,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         mutationCount.loadSettingsFrom(settings);
         elitism.loadSettingsFrom(settings);
         path.loadSettingsFrom(settings);
+        crossoverType.loadSettingsFrom(settings);
+        geneSymbols.loadSettingsFrom(settings);
     }
 
     /**
@@ -249,7 +260,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         mutationCount.validateSettings(settings);
         elitism.validateSettings(settings);
         path.validateSettings(settings);
-
+        crossoverType.validateSettings(settings);
+        geneSymbols.validateSettings(settings);
     }
     
     /**
@@ -298,15 +310,17 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	Random random = new Random();
     	
     	int generation = 0;
-    	
+    	String[] symbols = this.geneSymbols.getStringValue().split(",");
+    
     	//Generates an initial population
     	do {
     		exec.checkCanceled();
     		Individual individual = new Individual();
     	
     		do {
-    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
-    		}while(individual.getValue().length()<this.cromossomesCount.getIntValue());
+//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
+    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
+    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
     		
     		firstPopulation.getIndividuals().add(individual);
     		
@@ -324,7 +338,17 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		generation++;
     		
     		//crossover
-    		populationList.set(generation, crossover(populationList.get(generation)));
+    		switch(this.crossoverType.getStringValue()) {
+    		case "Single Point":
+        		populationList.set(generation, singlePointCrossover(populationList.get(generation)));
+    			break;
+    		case "Double Point":
+    			populationList.set(generation, doublePointCrossover(populationList.get(generation)));
+    			break;
+    		case "uniform":
+    			populationList.set(generation, uniformCrossover(populationList.get(generation)));
+    			break;
+    		}
     		
     		//mutation
     		populationList.set(generation, mutation(populationList.get(generation)));
@@ -351,10 +375,20 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     			/*Path filePath; 	//Creates a new temp file that will actually be executed
         		filePath = Files.createTempFile("script", ".py");
             	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file*/
-    			ProcessBuilder processBuilder = new ProcessBuilder("python",this.path.getStringValue(),individual.getValue());  //Builds the process that will execute the script
+    			String value = "";
+    			List<String> valueList = individual.getValue();
+    			if(valueList.size() > 1) {
+	    			for(String s : valueList) {
+	    				value = value.concat(s);
+	    			}
+    			}else {
+    				value = valueList.get(0);
+    			}
+    			ProcessBuilder processBuilder = new ProcessBuilder("python",this.path.getStringValue(),value);  //Builds the process that will execute the script
         		Process process = processBuilder.start(); 
         		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
         		String str = reader.readLine();
+        		
         		individual.setFitness(Double.parseDouble(str)); //Set individual fitness
         		//Files.deleteIfExists(filePath);
         		reader.close();
@@ -368,15 +402,19 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     
     Population selection(Population population) {
     	Double cumulative = 0D;
+    	
+    	Population returnPopulation = new Population();
+    	List<Individual> individualList = new ArrayList<Individual>();
+    	List<Double> wheelList = new ArrayList<Double>();
+    	
+    	if(this.elitism.getBooleanValue()) {
+    		returnPopulation.getIndividuals().add(population.getBestIndividual());
+    	}
     	//Calculates the probability of the individual to go to the next generation
     	for(Individual individual : population.getIndividuals()) {
     		cumulative += (individual.getFitness()/population.getSumFitness());
     		individual.setSelectionProbability(cumulative);
     	}
-    	
-    	Population returnPopulation = new Population();
-    	List<Individual> individualList = new ArrayList<Individual>();
-    	List<Double> wheelList = new ArrayList<Double>();
     	
     	/*while(wheelList.size()<this.individualCount.getIntValue()) {
     		wheelList.add(Math.random());
@@ -418,7 +456,73 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return returnPopulation;
     }
     
-    Population crossover(Population population) {
+    Population uniformCrossover(Population population) {
+    	
+    	Population returnPopulation = new Population();
+    	
+    	int count = 0; //VERIFIES IF THERE'S ALREADY AN INDIVIDUAL SELECTED TO THE CROSSOVER
+    	
+    	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
+    	
+    	for(Individual individual : population.getIndividuals()) {
+    		
+    		if(Math.random()<this.crossoverCount.getDoubleValue()) {
+    			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
+    				previousIndividual = individual;
+    				count++;
+    			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
+    				
+    				String str = "";
+    				
+    				if(previousIndividual.getValue().size()>1) {
+	    				for(String string : previousIndividual.getValue()) {
+	    					str = str.concat(string);
+	    				}
+    				}else {
+    					str = previousIndividual.getValue().get(0);
+    				}
+    				char[] previousIndividualChars = str.toCharArray();
+    				
+    				if(individual.getValue().size()>1) {
+    					for(String string : individual.getValue()) {
+        					str = str.concat(string);
+        				}
+    				}else {
+    					str = individual.getValue().get(0);
+    				}
+    				    				
+					char[] individualChars = str.toCharArray();
+					
+					char aux;
+					int slice = individualChars.length/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
+					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
+						if(i >= this.crossoverCount.getDoubleValue()) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
+							aux = previousIndividualChars[i];
+							previousIndividualChars[i] = individualChars[i];
+							individualChars[i] = aux;
+						}
+					}
+					previousIndividual.resetValue();
+					previousIndividual.setValue(String.valueOf(previousIndividualChars));
+					individual.resetValue();
+					individual.setValue(String.valueOf(individualChars));
+					
+					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
+					returnPopulation.getIndividuals().add(previousIndividual);
+					returnPopulation.getIndividuals().add(individual);		
+					previousIndividual= new Individual();
+					count = 0;
+    			}
+    		}else {
+    			//IF THE INDIVIDUAL IS NOT CHOOSEN TO BE CROSSOVERED, IT GOES RIGHT TO THE NEXT POPULATION
+    			returnPopulation.getIndividuals().add(individual); 	
+    		}
+    		
+    	}
+    	return returnPopulation;
+    }
+    
+	Population doublePointCrossover(Population population) {
     	
     	Population returnPopulation = new Population();
     	
@@ -434,8 +538,99 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				count++;
     			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
     				
-					char[] previousIndividualChars = previousIndividual.getValue().toCharArray();
-					char[] individualChars = individual.getValue().toCharArray();
+    				String str = "";
+    				
+    				if(previousIndividual.getValue().size()>1) {
+	    				for(String string : previousIndividual.getValue()) {
+	    					str = str.concat(string);
+	    				}
+    				}else {
+    					str = previousIndividual.getValue().get(0);
+    				}
+    				char[] previousIndividualChars = str.toCharArray();
+    				
+    				if(individual.getValue().size()>1) {
+    					for(String string : individual.getValue()) {
+        					str = str.concat(string);
+        				}
+    				}else {
+    					str = individual.getValue().get(0);
+    				}
+    				    				
+					char[] individualChars = str.toCharArray();
+					
+					char aux;
+					int firstSlice = -1;
+					int secondSlice = -1;
+					do {
+						firstSlice = (int) Math.random(); //DEFINES WHERE THE SLICE WILL HAPPEN
+					}while(firstSlice > individualChars.length-1);
+					do {
+						secondSlice = (int) Math.random();
+					}while (secondSlice>individualChars.length && secondSlice <= firstSlice + 1);
+					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
+						if(i >= firstSlice && i <= secondSlice ) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
+							aux = previousIndividualChars[i];
+							previousIndividualChars[i] = individualChars[i];
+							individualChars[i] = aux;
+						}
+					}
+					previousIndividual.resetValue();
+					previousIndividual.setValue(String.valueOf(previousIndividualChars));
+					individual.resetValue();
+					individual.setValue(String.valueOf(individualChars));
+					
+					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
+					returnPopulation.getIndividuals().add(previousIndividual);
+					returnPopulation.getIndividuals().add(individual);		
+					previousIndividual= new Individual();
+					count = 0;
+    			}
+    		}else {
+    			//IF THE INDIVIDUAL IS NOT CHOOSEN TO BE CROSSOVERED, IT GOES RIGHT TO THE NEXT POPULATION
+    			returnPopulation.getIndividuals().add(individual); 	
+    		}
+    		
+    	}
+    	return returnPopulation;
+    }
+
+    Population singlePointCrossover(Population population) {
+    	
+    	Population returnPopulation = new Population();
+    	
+    	int count = 0; //VERIFIES IF THERE'S ALREADY A INDIVIDUAL SELECTED TO THE CROSSOVER
+    	
+    	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
+    	
+    	for(Individual individual : population.getIndividuals()) {
+    		
+    		if(Math.random()<this.crossoverCount.getDoubleValue()) {
+    			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
+    				previousIndividual = individual;
+    				count++;
+    			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
+    				
+    				String str = "";
+    				
+    				if(previousIndividual.getValue().size()>1) {
+	    				for(String string : previousIndividual.getValue()) {
+	    					str = str.concat(string);
+	    				}
+    				}else {
+    					str = previousIndividual.getValue().get(0);
+    				}
+    				char[] previousIndividualChars = str.toCharArray();
+    				
+    				if(individual.getValue().size()>1) {
+    					for(String string : individual.getValue()) {
+        					str = str.concat(string);
+        				}
+    				}else {
+    					str = individual.getValue().get(0);
+    				}
+    				    				
+					char[] individualChars = str.toCharArray();
 					char aux;
 					int slice = individualChars.length/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
 					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
@@ -445,6 +640,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 							individualChars[i] = aux;
 						}
 					}
+					previousIndividual.resetValue();
+					individual.resetValue();
 					previousIndividual.setValue(String.valueOf(previousIndividualChars));
 					individual.setValue(String.valueOf(individualChars));
 					
@@ -471,7 +668,19 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		
     		if(Math.random()<this.mutationCount.getDoubleValue()) {
     			
-				char[] individualChars = individual.getValue().toCharArray();
+    			String str = "";
+				
+				
+				if(individual.getValue().size()>1) {
+					for(String string : individual.getValue()) {
+    					str = str.concat(string);
+    				}
+				}else {
+					str = individual.getValue().get(0);
+				}
+				    				
+				char[] individualChars = str.toCharArray();
+				
 				
 				for(char c : individualChars) { 			//ITERATE OVER THE CROMOSSOMES
 					if(Math.random()<this.mutationCount.getDoubleValue()) {		//SWAP THE CROMOSSOMES
@@ -482,7 +691,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 						}
 					}
 				}
-				
+				individual.resetValue();
 				individual.setValue(String.valueOf(individualChars));
 				returnPopulation.getIndividuals().add(individual);
     		}else {
