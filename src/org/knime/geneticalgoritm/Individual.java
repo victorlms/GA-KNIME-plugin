@@ -26,8 +26,8 @@ public class Individual {
 	public void setValue(String value) {
 		this.value.add(value);
 	}
-	public void resetValue() {
-		this.value = new ArrayList<>();
+	public void resetValue(ArrayList<String> value) {
+		this.value = value;
 	}
 	public Double getFitness() {
 		return fitness;
@@ -42,6 +42,14 @@ public class Individual {
 
 	public void setSelectionProbability(Double selectionProbability) {
 		this.selectionProbability = selectionProbability;
+	}
+	
+	public String getStringValue() {
+		String sValue = "";
+		for(String s : this.value) {
+			sValue = sValue.concat(s);
+		}
+		return sValue;
 	}
 	
 }

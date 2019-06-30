@@ -132,7 +132,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         // the data table spec of the single output table, 
         // the table will have three columns:
 //        DataColumnSpec[] allColSpecs = new DataColumnSpec[2];
-        DataColumnSpec[] allColSpecs = new DataColumnSpec[3];
+        DataColumnSpec[] allColSpecs = new DataColumnSpec[4];
         
         allColSpecs[0] = 
                 new DataColumnSpecCreator("Average Fitness", DoubleCell.TYPE).createSpec();
@@ -140,6 +140,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         		new DataColumnSpecCreator("Best Individual", StringCell.TYPE).createSpec();
         allColSpecs[2] = 
         		new DataColumnSpecCreator("Best Fitness", DoubleCell.TYPE).createSpec();
+        allColSpecs[3] = 
+        		new DataColumnSpecCreator("Execution Time", DoubleCell.TYPE).createSpec();
         DataTableSpec outputSpec = new DataTableSpec(allColSpecs);
         // the execution context will provide us with storage capacity, in this
         // case a data container to which we will add rows sequentially
@@ -152,12 +154,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         
         for(Population population : populations) {
         	exec.checkCanceled();
-        	RowKey individualKey = new RowKey("Population "+index+" average fitness");
-        	DataCell[] cells = new DataCell[3];
+        	RowKey individualKey = new RowKey("Population "+index);
+        	DataCell[] cells = new DataCell[4];
         	//cells[0] = new StringCell((index).toString());
         	cells[0] = new DoubleCell(population.getAverageFitness());
         	cells[1] = new StringCell(population.getBestIndividual().getValue().toString());
         	cells[2] = new DoubleCell(population.getBestIndividual().getFitness());
+        	cells[3] = new DoubleCell(population.getExecutionTime().doubleValue());
         	DataRow individualRow = new DefaultRow(individualKey, cells);
         	//DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
         	container.addRowToTable(individualRow);
@@ -311,6 +314,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	
     	int generation = 0;
     	String[] symbols = this.geneSymbols.getStringValue().split(",");
+    	
+    	Long startTime;
+    	Long endTime;
     
     	//Generates an initial population
     	do {
@@ -325,15 +331,18 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		firstPopulation.getIndividuals().add(individual);
     		
     	}while(firstPopulation.getIndividuals().size() < this.individualCount.getIntValue());
-    	
+    	startTime = System.currentTimeMillis();
     	firstPopulation = evaluate(firstPopulation);
-    	
+    	bestIndividual = firstPopulation.getBestIndividual();
+    	endTime = System.currentTimeMillis();
+    	firstPopulation.setExecutionTime(endTime - startTime);
     	populationList.add(firstPopulation);
 
-		
+    	endTime = startTime = 0L;
 		while (generation < this.generationCount.getIntValue()) {
 			exec.checkCanceled();
     		//Selection
+			startTime = System.currentTimeMillis();
     		populationList.add(selection(populationList.get(generation)));
     		generation++;
     		
@@ -355,6 +364,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		
     		//evaluation
     		populationList.set(generation, evaluate(populationList.get(generation)));
+    		endTime = System.currentTimeMillis();
+    		populationList.get(generation).setExecutionTime(endTime - startTime);
+    		endTime = startTime = 0L;
 		}
 		
 		for(Population population : populationList) {
@@ -376,14 +388,15 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         		filePath = Files.createTempFile("script", ".py");
             	Files.write(filePath, lines, Charset.forName("UTF-8")); //Writes the Python code down in the file*/
     			String value = "";
-    			List<String> valueList = individual.getValue();
-    			if(valueList.size() > 1) {
-	    			for(String s : valueList) {
-	    				value = value.concat(s);
-	    			}
-    			}else {
-    				value = valueList.get(0);
-    			}
+//    			List<String> valueList = individual.getValue();
+    			value = individual.getStringValue();
+//    			if(valueList.size() > 1) {
+//	    			for(String s : valueList) {
+//	    				value = value.concat(s);
+//	    			}
+//    			}else {
+//    				value = valueList.get(0);
+//    			}
     			ProcessBuilder processBuilder = new ProcessBuilder("python",this.path.getStringValue(),value);  //Builds the process that will execute the script
         		Process process = processBuilder.start(); 
         		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
@@ -415,25 +428,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		cumulative += (individual.getFitness()/population.getSumFitness());
     		individual.setSelectionProbability(cumulative);
     	}
-    	
-    	/*while(wheelList.size()<this.individualCount.getIntValue()) {
-    		wheelList.add(Math.random());
-    	}
-    	while(individualList.size()!= population.getIndividuals().size()) {
-	    	for(Double d : wheelList) {
-	    		for(Individual individual : population.getIndividuals()) {
-	    			if(individual.getSelectionProbability() > floor && individual.getSelectionProbability() < d) {
-	    				Individual newIndividual = new Individual(individual.getValue(),individual.getFitness(),individual.getSelectionProbability());
-	    				individualList.add(newIndividual);
-	    				floor = individual.getSelectionProbability();
-	    				break;
-	    			}
-	    		}
-	    		if(individualList.size() == population.getIndividuals().size()) {
-	    			break;
-	    		}
-	    	}
-    	}*/
     	
     	Double floor = 0D;
     	for(int i = 0; i < this.individualCount.getIntValue(); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
@@ -472,40 +466,42 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				count++;
     			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
     				
-    				String str = "";
+//    				String str = "";
     				
-    				if(previousIndividual.getValue().size()>1) {
-	    				for(String string : previousIndividual.getValue()) {
-	    					str = str.concat(string);
-	    				}
-    				}else {
-    					str = previousIndividual.getValue().get(0);
-    				}
-    				char[] previousIndividualChars = str.toCharArray();
-    				
-    				if(individual.getValue().size()>1) {
-    					for(String string : individual.getValue()) {
-        					str = str.concat(string);
-        				}
-    				}else {
-    					str = individual.getValue().get(0);
-    				}
-    				    				
-					char[] individualChars = str.toCharArray();
+//    				if(previousIndividual.getValue().size()>1) {
+//	    				for(String string : previousIndividual.getValue()) {
+//	    					str = str.concat(string);
+//	    				}
+//    				}else {
+//    					str = previousIndividual.getValue().get(0);
+//    				}
+//    				char[] previousIndividualChars = str.toCharArray();
+//    				
+//    				if(individual.getValue().size()>1) {
+//    					for(String string : individual.getValue()) {
+//        					str = str.concat(string);
+//        				}
+//    				}else {
+//    					str = individual.getValue().get(0);
+//    				}
+//    				    				
+//					char[] individualChars = str.toCharArray();
 					
-					char aux;
-					int slice = individualChars.length/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
-					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
-						if(i >= this.crossoverCount.getDoubleValue()) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
-							aux = previousIndividualChars[i];
-							previousIndividualChars[i] = individualChars[i];
-							individualChars[i] = aux;
+    				ArrayList<String> previousIndividualChars = previousIndividual.getValue();
+    				ArrayList<String> individualChars = individual.getValue();
+    				
+					String aux;
+					for(int i = 0; i < individualChars.size(); i++) { 	//ITERATE OVER THE CROMOSSOMES
+						if(Math.random() < this.crossoverCount.getDoubleValue()) {								
+							aux = previousIndividualChars.get(i);
+							previousIndividualChars.set(i, individualChars.get(i));
+							individualChars.set(i, aux);
 						}
 					}
-					previousIndividual.resetValue();
-					previousIndividual.setValue(String.valueOf(previousIndividualChars));
-					individual.resetValue();
-					individual.setValue(String.valueOf(individualChars));
+					previousIndividual.resetValue(previousIndividualChars);
+//					previousIndividual.setValue(String.valueOf(previousIndividualChars));
+					individual.resetValue(individualChars);
+//					individual.setValue(String.valueOf(individualChars));
 					
 					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
 					returnPopulation.getIndividuals().add(previousIndividual);
@@ -538,47 +534,53 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				count++;
     			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
     				
-    				String str = "";
+//    				String str = "";
+//    				
+//    				if(previousIndividual.getValue().size()>1) {
+//	    				for(String string : previousIndividual.getValue()) {
+//	    					str = str.concat(string);
+//	    				}
+//    				}else {
+//    					str = previousIndividual.getValue().get(0);
+//    				}
+//    				char[] previousIndividualChars = str.toCharArray();
+//    				
+//    				if(individual.getValue().size()>1) {
+//    					for(String string : individual.getValue()) {
+//        					str = str.concat(string);
+//        				}
+//    				}else {
+//    					str = individual.getValue().get(0);
+//    				}
+//    				    				
+//					char[] individualChars = str.toCharArray();
+    				ArrayList<String> previousIndividualChars = previousIndividual.getValue();
+    				ArrayList<String> individualChars = individual.getValue();
     				
-    				if(previousIndividual.getValue().size()>1) {
-	    				for(String string : previousIndividual.getValue()) {
-	    					str = str.concat(string);
-	    				}
-    				}else {
-    					str = previousIndividual.getValue().get(0);
-    				}
-    				char[] previousIndividualChars = str.toCharArray();
-    				
-    				if(individual.getValue().size()>1) {
-    					for(String string : individual.getValue()) {
-        					str = str.concat(string);
-        				}
-    				}else {
-    					str = individual.getValue().get(0);
-    				}
-    				    				
-					char[] individualChars = str.toCharArray();
-					
-					char aux;
+					String aux;
 					int firstSlice = -1;
 					int secondSlice = -1;
+					
 					do {
 						firstSlice = (int) Math.random(); //DEFINES WHERE THE SLICE WILL HAPPEN
-					}while(firstSlice > individualChars.length-1);
+					}while(firstSlice > individualChars.size()-3);
+					
 					do {
 						secondSlice = (int) Math.random();
-					}while (secondSlice>individualChars.length && secondSlice <= firstSlice + 1);
-					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
+					}while (secondSlice>individualChars.size()-1 && secondSlice <= firstSlice + 1);
+					
+					for(int i = 1; i < individualChars.size(); i++) { 	//ITERATE OVER THE CROMOSSOMES | IT GOES AS "X|XX...|X"
 						if(i >= firstSlice && i <= secondSlice ) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
-							aux = previousIndividualChars[i];
-							previousIndividualChars[i] = individualChars[i];
-							individualChars[i] = aux;
+							aux = previousIndividualChars.get(i);
+							previousIndividualChars.set(i, individualChars.get(i));
+							individualChars.set(i, aux);
 						}
 					}
-					previousIndividual.resetValue();
-					previousIndividual.setValue(String.valueOf(previousIndividualChars));
-					individual.resetValue();
-					individual.setValue(String.valueOf(individualChars));
+					
+					previousIndividual.resetValue(previousIndividualChars);
+//					previousIndividual.setValue(String.valueOf(previousIndividualChars));
+					individual.resetValue(individualChars);
+//					individual.setValue(String.valueOf(individualChars));
 					
 					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
 					returnPopulation.getIndividuals().add(previousIndividual);
@@ -612,38 +614,43 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
     				
     				String str = "";
+//    				
+//    				if(previousIndividual.getValue().size()>1) {
+//	    				for(String string : previousIndividual.getValue()) {
+//	    					str = str.concat(string);
+//	    				}
+//    				}else {
+//    					str = previousIndividual.getValue().get(0);
+//    				}
+//    				char[] previousIndividualChars = str.toCharArray();
+//    				
+//    				if(individual.getValue().size()>1) {
+//    					for(String string : individual.getValue()) {
+//        					str = str.concat(string);
+//        				}
+//    				}else {
+//    					str = individual.getValue().get(0);
+//    				}
+//    				    				
+//					char[] individualChars = str.toCharArray();
+    				ArrayList<String> previousIndividualChars = previousIndividual.getValue();
+    				ArrayList<String> individualChars = individual.getValue();
     				
-    				if(previousIndividual.getValue().size()>1) {
-	    				for(String string : previousIndividual.getValue()) {
-	    					str = str.concat(string);
-	    				}
-    				}else {
-    					str = previousIndividual.getValue().get(0);
-    				}
-    				char[] previousIndividualChars = str.toCharArray();
-    				
-    				if(individual.getValue().size()>1) {
-    					for(String string : individual.getValue()) {
-        					str = str.concat(string);
-        				}
-    				}else {
-    					str = individual.getValue().get(0);
-    				}
-    				    				
-					char[] individualChars = str.toCharArray();
-					char aux;
-					int slice = individualChars.length/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
-					for(int i = 0; i < individualChars.length; i++) { 	//ITERATE OVER THE CROMOSSOMES
+					String aux;
+					
+					int slice = individualChars.size()/2+1; //DEFINES WHERE THE SLICE WILL HAPPEN
+					for(int i = 1; i < individualChars.size()-1; i++) { 	//ITERATE OVER THE CROMOSSOMES -> IT GOES AS "X|XX...X" OR "X...XX|X"
 						if(i >= slice) {								//SWAP THE CROMOSSOMES AFTER THE SLICE
-							aux = previousIndividualChars[i];
-							previousIndividualChars[i] = individualChars[i];
-							individualChars[i] = aux;
+							aux = previousIndividualChars.get(i);
+							previousIndividualChars.set(i, individualChars.get(i));
+							individualChars.set(i, aux);
 						}
 					}
-					previousIndividual.resetValue();
-					individual.resetValue();
-					previousIndividual.setValue(String.valueOf(previousIndividualChars));
-					individual.setValue(String.valueOf(individualChars));
+					
+					previousIndividual.resetValue(previousIndividualChars);
+//					previousIndividual.setValue(String.valueOf(previousIndividualChars));
+					individual.resetValue(individualChars);
+//					individual.setValue(String.valueOf(individualChars));
 					
 					//ADDS THE NEW INDIVIDUALS TO THE NEW POPULATION
 					returnPopulation.getIndividuals().add(previousIndividual);
@@ -668,31 +675,31 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		
     		if(Math.random()<this.mutationCount.getDoubleValue()) {
     			
-    			String str = "";
+//    			String str = "";
+//				
+//				
+//				if(individual.getValue().size()>1) {
+//					for(String string : individual.getValue()) {
+//    					str = str.concat(string);
+//    				}
+//				}else {
+//					str = individual.getValue().get(0);
+//				}
+//				    				
+//				char[] individualChars = str.toCharArray();
+				ArrayList<String> individualChars = individual.getValue();
 				
-				
-				if(individual.getValue().size()>1) {
-					for(String string : individual.getValue()) {
-    					str = str.concat(string);
-    				}
-				}else {
-					str = individual.getValue().get(0);
-				}
-				    				
-				char[] individualChars = str.toCharArray();
-				
-				
-				for(char c : individualChars) { 			//ITERATE OVER THE CROMOSSOMES
-					if(Math.random()<this.mutationCount.getDoubleValue()) {		//SWAP THE CROMOSSOMES
-						if(c == '0') {
-							c = '1';
+				for(String c : individualChars) { 			//ITERATE OVER THE CROMOSSOMES
+					if(Math.random() < this.mutationCount.getDoubleValue()) {		//SWAP THE CROMOSSOMES
+						if(c == "0") {
+							c = "1";
 						}else {
-							c = '0';
+							c = "0";
 						}
 					}
 				}
-				individual.resetValue();
-				individual.setValue(String.valueOf(individualChars));
+				individual.resetValue(individualChars);
+//				individual.setValue(String.valueOf(individualChars));
 				returnPopulation.getIndividuals().add(individual);
     		}else {
     			returnPopulation.getIndividuals().add(individual);
