@@ -125,14 +125,14 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
             final ExecutionContext exec) throws Exception {
     
     	List<Population> populations = new ArrayList<Population>();
+    	Population firstPopulation = new Population();
+    	String[] symbols = this.geneSymbols.getStringValue().split(",");
+    	Random random = new Random();
+    	Integer index = 1;
     	//Individual bestIndividual = geneticAlgorithm(exec);
-    	populations = geneticAlgorithm(exec);
-    	//String testeString = reader.readLine();
-    	//reader.close();
-        // the data table spec of the single output table, 
-        // the table will have three columns:
-//        DataColumnSpec[] allColSpecs = new DataColumnSpec[2];
-        DataColumnSpec[] allColSpecs = new DataColumnSpec[4];
+    	
+    	
+    	DataColumnSpec[] allColSpecs = new DataColumnSpec[4];
         
         allColSpecs[0] = 
                 new DataColumnSpecCreator("Average Fitness", DoubleCell.TYPE).createSpec();
@@ -148,9 +148,63 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         // Note, this container can also handle arbitrary big data tables, it
         // will buffer to disc if necessary.
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
+    	
+    	//Generates an initial population
+    	do {
+    		exec.checkCanceled();
+    		Individual individual = new Individual();
+    	
+    		do {
+//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
+    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
+    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
+    		
+    		firstPopulation.getIndividuals().add(individual);
+    		
+    	}while(firstPopulation.getIndividuals().size() < this.individualCount.getIntValue());
+    	firstPopulation = evaluate(firstPopulation, exec);
+    	populations.add(firstPopulation);
+
+    	RowKey key = new RowKey("Population "+index);
+    	DataCell[] cell = new DataCell[4];
+    	//cells[0] = new StringCell((index).toString());
+    	cell[0] = new DoubleCell(populations.get(0).getAverageFitness());
+    	cell[1] = new StringCell(populations.get(0).getBestIndividual().getValue().toString());
+    	cell[2] = new DoubleCell(populations.get(0).getBestIndividual().getFitness());
+    	cell[3] = new DoubleCell(populations.get(0).getExecutionTime().doubleValue());
+    	DataRow row = new DefaultRow(key, cell);
+    	//DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
+    	container.addRowToTable(row);
+    	//container.addRowToTable(fitnessRow);
+    	index++;
+    	
+    	for(int i = 0; i < this.generationCount.getIntValue()-1; i++) {
+    		exec.checkCanceled();
+    		
+    		populations.add(geneticAlgorithm(exec, populations.get(i)));
+    		
+    		
+        	RowKey individualKey = new RowKey("Population "+index);
+        	DataCell[] cells = new DataCell[4];
+        	//cells[0] = new StringCell((index).toString());
+        	cells[0] = new DoubleCell(populations.get(i).getAverageFitness());
+        	cells[1] = new StringCell(populations.get(i).getBestIndividual().getValue().toString());
+        	cells[2] = new DoubleCell(populations.get(i).getBestIndividual().getFitness());
+        	cells[3] = new DoubleCell(populations.get(i).getExecutionTime().doubleValue());
+        	DataRow individualRow = new DefaultRow(individualKey, cells);
+        	//DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
+        	container.addRowToTable(individualRow);
+        	//container.addRowToTable(fitnessRow);
+        	index++;
+    		
+    	}
+    	
+//    	populations = geneticAlgorithm(exec);
+    	
+        
         
         //RowKey fitnessKey = new RowKey("Fitness");
-        Integer index = 1;
+       
         
         for(Population population : populations) {
         	exec.checkCanceled();
@@ -302,87 +356,61 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     }
     
 //    protected Individual geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
-    	protected List<Population>geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
+    	protected Population geneticAlgorithm(final ExecutionContext exec, Population population) throws CanceledExecutionException {
     	
     	Individual bestIndividual = new Individual();
     	
-    	List<Population> populationList = new ArrayList<Population>();
+//    	List<Population> populationList = new ArrayList<Population>();
     	
-    	Population firstPopulation = new Population();
-    	
+    	Population newPopulation = new Population();
+    	newPopulation = selection(population, exec);
     	Random random = new Random();
     	
-    	int generation = 0;
-    	String[] symbols = this.geneSymbols.getStringValue().split(",");
+//    	int generation = 0;
+//    	String[] symbols = this.geneSymbols.getStringValue().split(",");
     	
     	Long startTime;
     	Long endTime;
     
-    	//Generates an initial population
-    	do {
-    		exec.checkCanceled();
-    		Individual individual = new Individual();
-    	
-    		do {
-//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
-    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
-    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
-    		
-    		firstPopulation.getIndividuals().add(individual);
-    		
-    	}while(firstPopulation.getIndividuals().size() < this.individualCount.getIntValue());
-    	startTime = System.currentTimeMillis();
-    	firstPopulation = evaluate(firstPopulation);
-    	bestIndividual = firstPopulation.getBestIndividual();
-    	endTime = System.currentTimeMillis();
-    	firstPopulation.setExecutionTime(endTime - startTime);
-    	populationList.add(firstPopulation);
-
-    	endTime = startTime = 0L;
-		while (generation < this.generationCount.getIntValue()) {
-			exec.checkCanceled();
-    		//Selection
-			startTime = System.currentTimeMillis();
-    		populationList.add(selection(populationList.get(generation)));
-    		generation++;
-    		
-    		//crossover
-    		switch(this.crossoverType.getStringValue()) {
+		exec.checkCanceled();
+		//Selection
+		startTime = System.currentTimeMillis();
+//    		populationList.add(selection(populationList.get(generation)));
+//    		generation++;
+		
+		//crossover
+		switch(this.crossoverType.getStringValue()) {
     		case "Single Point":
-        		populationList.set(generation, singlePointCrossover(populationList.get(generation)));
+    			newPopulation = singlePointCrossover(newPopulation, exec);
     			break;
     		case "Double Point":
-    			populationList.set(generation, doublePointCrossover(populationList.get(generation)));
+    			newPopulation = doublePointCrossover(newPopulation, exec);
     			break;
     		case "uniform":
-    			populationList.set(generation, uniformCrossover(populationList.get(generation)));
+    			newPopulation = uniformCrossover(newPopulation, exec);
     			break;
-    		}
-    		
-    		//mutation
-    		populationList.set(generation, mutation(populationList.get(generation)));
-    		
-    		//evaluation
-    		populationList.set(generation, evaluate(populationList.get(generation)));
-    		endTime = System.currentTimeMillis();
-    		populationList.get(generation).setExecutionTime(endTime - startTime);
-    		endTime = startTime = 0L;
 		}
 		
-		for(Population population : populationList) {
-			exec.checkCanceled();
-			if(population.getBestIndividual().getFitness() > bestIndividual.getFitness()) {
-				bestIndividual = population.getBestIndividual();
-			}
-		}
+		//mutation
+		newPopulation = mutation(newPopulation, exec);
+		
+		//evaluation
+		newPopulation = evaluate(newPopulation, exec);
+		endTime = System.currentTimeMillis();
+		newPopulation.setExecutionTime(endTime - startTime);
+		endTime = startTime = 0L;
+		
+		bestIndividual = newPopulation.getBestIndividual();
+		
     	
 //    	return bestIndividual;
-    	return populationList;
+    	return newPopulation;
     	
     }
     
-    Population evaluate(Population population) {
+    Population evaluate(Population population, final ExecutionContext exec) throws CanceledExecutionException {
     	try {
+    		
     		for(Individual individual : population.getIndividuals()) {
     			/*Path filePath; 	//Creates a new temp file that will actually be executed
         		filePath = Files.createTempFile("script", ".py");
@@ -397,6 +425,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 //    			}else {
 //    				value = valueList.get(0);
 //    			}
+    			exec.checkCanceled();
     			ProcessBuilder processBuilder = new ProcessBuilder("python",this.path.getStringValue(),value);  //Builds the process that will execute the script
         		Process process = processBuilder.start(); 
         		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
@@ -413,7 +442,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return population; //return population with its fitness and individuals evaluated
     }
     
-    Population selection(Population population) {
+    Population selection(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	Double cumulative = 0D;
     	
     	Population returnPopulation = new Population();
@@ -425,13 +454,15 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	}
     	//Calculates the probability of the individual to go to the next generation
     	for(Individual individual : population.getIndividuals()) {
+    		exec.checkCanceled();
     		cumulative += (individual.getFitness()/population.getSumFitness());
     		individual.setSelectionProbability(cumulative);
     	}
     	
     	Double floor = 0D;
     	for(int i = 0; i < this.individualCount.getIntValue(); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
-	    	Double rand = Math.random();
+	    	exec.checkCanceled();
+    		Double rand = Math.random();
 	    	int index = 0;
 	    	int last = 0;
 	    	while(floor < rand) { //FIND THE INDIVIDUAL CHOOSEN
@@ -450,7 +481,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return returnPopulation;
     }
     
-    Population uniformCrossover(Population population) {
+    Population uniformCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
     	
@@ -459,7 +490,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
     	
     	for(Individual individual : population.getIndividuals()) {
-    		
+    		exec.checkCanceled();
     		if(Math.random()<this.crossoverCount.getDoubleValue()) {
     			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
     				previousIndividual = individual;
@@ -518,7 +549,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return returnPopulation;
     }
     
-	Population doublePointCrossover(Population population) {
+	Population doublePointCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
     	
@@ -527,7 +558,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
     	
     	for(Individual individual : population.getIndividuals()) {
-    		
+    		exec.checkCanceled();
     		if(Math.random()<this.crossoverCount.getDoubleValue()) {
     			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
     				previousIndividual = individual;
@@ -597,7 +628,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return returnPopulation;
     }
 
-    Population singlePointCrossover(Population population) {
+    Population singlePointCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
     	
@@ -606,7 +637,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
     	
     	for(Individual individual : population.getIndividuals()) {
-    		
+    		exec.checkCanceled();
     		if(Math.random()<this.crossoverCount.getDoubleValue()) {
     			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
     				previousIndividual = individual;
@@ -667,12 +698,12 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	return returnPopulation;
     }
     
-    Population mutation(Population population) {
+    Population mutation(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
     	
     	for(Individual individual : population.getIndividuals()) {
-    		
+    		exec.checkCanceled();
     		if(Math.random()<this.mutationCount.getDoubleValue()) {
     			
 //    			String str = "";
