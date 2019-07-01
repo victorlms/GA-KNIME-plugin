@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: GeneticAlgorithm-Node extension for KNIME Workbench
+Bundle-Name: Genetic Algorithm Plugin
 Bundle-SymbolicName: org.knime.geneticalgoritm; singleton:=true
-Bundle-Version: 1.0.0
+Bundle-Version: 1.0.6
 Bundle-ClassPath: geneticalgorithm.jar
 Bundle-Activator: org.knime.geneticalgoritm.GeneticAlgorithmNodePlugin
 Bundle-Vendor: Victor
