@@ -7,6 +7,7 @@ import java.util.Arrays;
 import org.knime.core.node.defaultnodesettings.DefaultNodeSettingsPane;
 import org.knime.core.node.defaultnodesettings.DialogComponentBoolean;
 import org.knime.core.node.defaultnodesettings.DialogComponentButtonGroup;
+import org.knime.core.node.defaultnodesettings.DialogComponentFileChooser;
 import org.knime.core.node.defaultnodesettings.DialogComponentNumber;
 import org.knime.core.node.defaultnodesettings.DialogComponentString;
 import org.knime.core.node.defaultnodesettings.DialogComponentStringListSelection;
@@ -75,13 +76,19 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				GeneticAlgorithmNodeModel.MUTATION_COUNT,
         				0, 1),
         		"Mutation rate", 0.01));
+        
         createNewGroup("Algorithm Settings:");
+        addDialogComponent(new DialogComponentStringSelection(
+        		new SettingsModelString(GeneticAlgorithmNodeModel.STOP_CONDITION_STR,
+        				GeneticAlgorithmNodeModel.STOP_CONDITION),
+        		"Stop condition", "Generations","Minutes"));
+        
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
         				GeneticAlgorithmNodeModel.GENERATION_STR,
         				GeneticAlgorithmNodeModel.GENERATION_COUNT,
         				1, 10000),
-        		"Generations", 1));
+        		"Number or minutes", 1));
         addDialogComponent(new DialogComponentBoolean(
         		new SettingsModelBoolean(
         				GeneticAlgorithmNodeModel.ELITISM_STR,
@@ -89,10 +96,16 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				"Elitism"));
         
         createNewGroup("Evaluation Function:");
-        addDialogComponent(new DialogComponentString(
+        addDialogComponent(new DialogComponentFileChooser(
         		new SettingsModelString(GeneticAlgorithmNodeModel.SCRIPT_STR, 
         				GeneticAlgorithmNodeModel.SCRIPT_PATH),
         				"Python script path:"));
+        
+//        createNewGroup("Evaluation Function:");
+//        addDialogComponent(new DialogComponentString(
+//        		new SettingsModelString(GeneticAlgorithmNodeModel.SCRIPT_STR, 
+//        				GeneticAlgorithmNodeModel.SCRIPT_PATH),
+//        				"Python script path:"));
         
     }
 }
