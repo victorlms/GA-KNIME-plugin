@@ -51,6 +51,12 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				GeneticAlgorithmNodeModel.INDIVIDUAL_COUNT,
         				1, 10000),
         		"Individuals", 1 ));
+        
+        addDialogComponent(new DialogComponentBoolean(
+        		new SettingsModelBoolean(
+        				GeneticAlgorithmNodeModel.ORDER_BASED_STR,
+        				GeneticAlgorithmNodeModel.ORDER_BASED),
+        				"Order-based"));
         addDialogComponent(new DialogComponentString(
         		new SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR, 
         				GeneticAlgorithmNodeModel.GENE_SYMBOLS),

@@ -59,6 +59,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     static final String CROSSOVER_TYPE_STR = "Crossover type";
     static final String GENE_SYMBOLS_STR = "Gene symbols";
     static final String STOP_CONDITION_STR = "Stop condition";
+    static final String ORDER_BASED_STR = "Order based cromossomes";
 	
     /** initial default count value. */
     static final int INDIVIDUAL_COUNT = 30;
@@ -70,6 +71,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     static final String CROSSOVER_TYPE = "single";
     static final String GENE_SYMBOLS = "0,1";
     static final String STOP_CONDITION = "Minutes";
+    static final boolean ORDER_BASED = false;
     
     static final String SCRIPT_PATH = "";
     private Long stopTime = 0L;
@@ -113,13 +115,19 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     
     private SettingsModelString stopCondition = 
     		new SettingsModelString(GeneticAlgorithmNodeModel.STOP_CONDITION_STR, GeneticAlgorithmNodeModel.STOP_CONDITION);
+    
+    private final SettingsModelBoolean orderBased = 
+    		new SettingsModelBoolean(GeneticAlgorithmNodeModel.ORDER_BASED_STR,GeneticAlgorithmNodeModel.ORDER_BASED);
+    
+    
     /**
      * Constructor for the node model.
      */
+    
     protected GeneticAlgorithmNodeModel() {
     
         // TODO one incoming port and one outgoing port is assumed
-        super(0, 1);
+        super(1, 1);
     }
 
     /**
@@ -128,11 +136,19 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     @Override
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
             final ExecutionContext exec) throws Exception {
-    	
+
+    	String[] symbols = this.geneSymbols.getStringValue().split(",");
+    	if(this.path.getStringValue().equals("")) {
+    		throw new Exception("It is required an evaluation function. Check node settings.");
+    	}
+    	if(this.orderBased.getBooleanValue() 
+    			&& this.cromossomesCount.getIntValue() != symbols.length) {
+    		throw new Exception("It was provided less symbols than the number of genes available" + 
+    								"which is an invalid setting for order-based algorithms.");
+    	}
     	Long startTime = System.currentTimeMillis()/1000;
     	List<Population> populations = new ArrayList<Population>();
     	Population firstPopulation = new Population();
-    	String[] symbols = this.geneSymbols.getStringValue().split(",");
     	Random random = new Random();
     	Integer index = 1;
     	
@@ -152,18 +168,47 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         // Note, this container can also handle arbitrary big data tables, it
         // will buffer to disc if necessary.
         BufferedDataContainer container = exec.createDataContainer(outputSpec);
-    	
+    	BufferedDataTable table = inData[0];
+    	//populate with provided individuals
+    	if(table.size() > 0) {
+			for(DataRow row : table) {
+				Individual definedIndividual = new Individual();
+//				String str = inData[0].toString();
+				if(row.getNumCells() != cromossomesCount.getIntValue()) {
+					throw new Exception("The provided individuals do not match the defined settings.");
+				}
+				for(int i = 0; i < row.getNumCells(); i++) {
+					
+					definedIndividual.setValue(row.getCell(i).toString());
+				}
+				firstPopulation.getIndividuals().add(definedIndividual);
+			}
+		}
     	//Generates an initial population
+    	
     	do {
     		exec.checkCanceled();
     		Individual individual = new Individual();
-    	
-    		do {
-//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
-    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
-    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
     		
-    		firstPopulation.getIndividuals().add(individual);
+    		if(!this.orderBased.getBooleanValue()) {
+    		
+	    		do {
+	//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
+	    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
+	    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
+	    		
+	    		firstPopulation.getIndividuals().add(individual);
+    		}else {
+    			do {
+					String str = symbols[random.nextInt(symbols.length)];
+	//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
+    				if(!individual.getValue().contains(str)) {
+    					individual.getValue().add(str);
+    				}
+	    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
+	    		
+	    		firstPopulation.getIndividuals().add(individual);
+    		}
     		
     	}while(firstPopulation.getIndividuals().size() < this.individualCount.getIntValue());
     	exec.setProgress(0, 
@@ -286,6 +331,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         crossoverType.saveSettingsTo(settings);
         geneSymbols.saveSettingsTo(settings);
         stopCondition.saveSettingsTo(settings);
+        orderBased.saveSettingsTo(settings);
     }
 
     /**
@@ -309,6 +355,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         crossoverType.loadSettingsFrom(settings);
         geneSymbols.loadSettingsFrom(settings);
         stopCondition.loadSettingsFrom(settings);
+        orderBased.loadSettingsFrom(settings);
     }
 
     /**
@@ -322,7 +369,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         // e.g. if the count is in a certain range (which is ensured by the
         // SettingsModel).
         // Do not actually set any values of any member variables.
-
+    	
         individualCount.validateSettings(settings);
         generationCount.validateSettings(settings);
         cromossomesCount.validateSettings(settings);
@@ -333,7 +380,30 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         crossoverType.validateSettings(settings);
         geneSymbols.validateSettings(settings);
         stopCondition.validateSettings(settings);
+        orderBased.validateSettings(settings);
+        
+        Boolean order = settings.getBoolean(ORDER_BASED_STR);
+        Integer genesCount = settings.getInt(CROMOSSOMES_STR);
+        String genes = settings.getString(GENE_SYMBOLS_STR);
+        String[] symbols = genes.split(",");
+        if(order && symbols.length < genesCount) {
+        	throw setValidadeException("It was provided less symbols than the number of genes available "
+        			+ "which is an invalid setting for order-based algorithms.");
+        }
+        String filePath = settings.getString(SCRIPT_STR);
+        if(filePath.equals("")) {
+        	throw setValidadeException("It is required an evaluation function.");
+        }
+        File file = new File(filePath);
+        if(!file.exists()) {
+        	throw setValidadeException("Evaluation function file could not be founded.");
+        }
     }
+    
+    private InvalidSettingsException setValidadeException(String message) {
+    	return new InvalidSettingsException(message);
+    }
+    
     
     /**
      * {@inheritDoc}
@@ -349,6 +419,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         // and user settings set through loadSettingsFrom - is all taken care 
         // of). Load here only the other internals that need to be restored
         // (e.g. data used by the views).
+    	
 
     }
     
@@ -456,8 +527,11 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         		Process process = processBuilder.start(); 
         		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); //Reads the output from the script
         		String str = reader.readLine();
-        		
-        		individual.setFitness(Double.parseDouble(str)); //Set individual fitness
+        		if(str != null) {
+        			individual.setFitness(Double.parseDouble(str)); //Set individual fitness
+        		}else {
+        			individual.setFitness(-1D);
+        		}
         		//Files.deleteIfExists(filePath);
         		reader.close();
         		
