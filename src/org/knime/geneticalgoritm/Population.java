@@ -1,6 +1,7 @@
 package org.knime.geneticalgoritm;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Population {
@@ -36,6 +37,33 @@ public class Population {
 			}
 		}
 		return bestIndividual;
+	}
+	
+	public List<Individual> getBestIndividual(Integer count) {
+		List<Individual> bestList = new ArrayList<>();
+		Individual bestIndividual = new Individual();
+		
+		for(int i = 0; i< count;i++) {
+			bestList.add(this.individuals.get(i));
+		}
+		
+		for(Individual individual : this.individuals) {
+			
+			int index = 0;
+			boolean control = false;
+			
+			for(Individual best : bestList) {
+				if(best.getFitness() < bestList.get(index).getFitness()) {
+					index = bestList.indexOf(best);
+					control = true;
+				}
+			}
+
+			if(control && individual.getFitness() > bestList.get(index).getFitness()) {
+				bestList.set(index, individual);
+			}
+		}
+		return bestList;
 	}
 		
 	public Double getSumFitness() {

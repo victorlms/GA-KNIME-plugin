@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.knime.base.node.preproc.joiner.Joiner2NodeModel;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
@@ -45,34 +46,41 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     // the logger instance
     private static final NodeLogger logger = NodeLogger
             .getLogger(GeneticAlgorithmNodeModel.class);
+    
+
+	protected final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         
     /** the settings key which is used to retrieve and 
         store the settings (from the dialog or from a settings file)    
        (package visibility to be usable from the dialog). */
     static final String INDIVIDUAL_STR = "Number of individuals";
     static final String GENERATION_STR = "Number of generations";
-    static final String CROMOSSOMES_STR  = "Number of cromossomes";
+    static final String GENES_STR  = "Number of genes";
     static final String MUTATION_STR = "Mutation rate";
     static final String CROSSOVER_STR = "Crossover rate";
     static final String ELITISM_STR = "Elitism";
     static final String SCRIPT_STR = "Path to Python script";
     static final String CROSSOVER_TYPE_STR = "Crossover type";
-    static final String GENE_SYMBOLS_STR = "Gene symbols";
+//    static final String GENE_SYMBOLS_STR = "Gene symbols";
     static final String STOP_CONDITION_STR = "Stop condition";
     static final String ORDER_BASED_STR = "Order based cromossomes";
+    static final String BEST_STR = "How many individuals will be considered the best";
+    static final String ELITISM_TYPE_STR = "Type of individuals will be considered the best";
 	
     /** initial default count value. */
     static final int INDIVIDUAL_COUNT = 30;
     static final int GENERATION_COUNT = 20;
-    static final int CROMOSSOMES_COUNT  = 8;
+    static final int GENES_COUNT  = 8;
     static final boolean ELITISM_STATE = true;
     static final double MUTATION_COUNT = 0.05;
     static final double CROSSOVER_COUNT = 0.8;
     static final String CROSSOVER_TYPE = "single";
-    static final String GENE_SYMBOLS = "0,1";
+//    static final String GENE_SYMBOLS = "0,1";
     static final String STOP_CONDITION = "Minutes";
     static final boolean ORDER_BASED = false;
+    static final String ELITISM_TYPE = "Individual(s)";
     
+    static final int BEST_COUNT = 2;// "Individual or percent"
     static final String SCRIPT_PATH = "";
     private Long stopTime = 0L;
 
@@ -90,9 +98,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				GeneticAlgorithmNodeModel.GENERATION_COUNT,
     				1, 10000);
 
-    private final SettingsModelIntegerBounded cromossomesCount = 
-    		new SettingsModelIntegerBounded(GeneticAlgorithmNodeModel.CROMOSSOMES_STR, 
-    				GeneticAlgorithmNodeModel.CROMOSSOMES_COUNT,
+    private final SettingsModelIntegerBounded genesCount = 
+    		new SettingsModelIntegerBounded(GeneticAlgorithmNodeModel.GENES_STR, 
+    				GeneticAlgorithmNodeModel.GENES_COUNT,
     				1, 1000);
 
     private final SettingsModelBoolean elitism = 
@@ -110,15 +118,26 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     private SettingsModelString crossoverType = 
     		new SettingsModelString(GeneticAlgorithmNodeModel.CROSSOVER_TYPE_STR, GeneticAlgorithmNodeModel.CROSSOVER_TYPE);
     
-    private SettingsModelString geneSymbols = 
-    		new SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR, GeneticAlgorithmNodeModel.GENE_SYMBOLS);
+	/*
+	 * private SettingsModelString geneSymbols = new
+	 * SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR,
+	 * GeneticAlgorithmNodeModel.GENE_SYMBOLS);
+	 */
     
-    private SettingsModelString stopCondition = 
+    private final SettingsModelString stopCondition = 
     		new SettingsModelString(GeneticAlgorithmNodeModel.STOP_CONDITION_STR, GeneticAlgorithmNodeModel.STOP_CONDITION);
     
     private final SettingsModelBoolean orderBased = 
     		new SettingsModelBoolean(GeneticAlgorithmNodeModel.ORDER_BASED_STR,GeneticAlgorithmNodeModel.ORDER_BASED);
     
+    private final SettingsModelString elitismType = 
+    		new SettingsModelString(GeneticAlgorithmNodeModel.ELITISM_TYPE_STR, GeneticAlgorithmNodeModel.ELITISM_TYPE);
+    
+    private final SettingsModelIntegerBounded bestIndividualsCount = 
+    		new SettingsModelIntegerBounded(GeneticAlgorithmNodeModel.BEST_STR, 
+    				GeneticAlgorithmNodeModel.BEST_COUNT,
+    				1, 100);
+
     
     /**
      * Constructor for the node model.
@@ -137,12 +156,14 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     protected BufferedDataTable[] execute(final BufferedDataTable[] inData,
             final ExecutionContext exec) throws Exception {
 
-    	String[] symbols = this.geneSymbols.getStringValue().split(",");
+    	String[] symbols = new String[2];
+    	symbols[0] = "0";
+    	symbols[1] = "1";//this.geneSymbols.getStringValue().split(",");
     	if(this.path.getStringValue().equals("")) {
     		throw new Exception("It is required an evaluation function. Check node settings.");
     	}
     	if(this.orderBased.getBooleanValue() 
-    			&& this.cromossomesCount.getIntValue() != symbols.length) {
+    			&& this.genesCount.getIntValue() != symbols.length) {
     		throw new Exception("It was provided less symbols than the number of genes available" + 
     								"which is an invalid setting for order-based algorithms.");
     	}
@@ -174,8 +195,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			for(DataRow row : table) {
 				Individual definedIndividual = new Individual();
 //				String str = inData[0].toString();
-				if(row.getNumCells() != cromossomesCount.getIntValue()) {
-					throw new Exception("The provided individuals do not match the defined settings.");
+				if(row.getNumCells() != genesCount.getIntValue()) {
+					throw new Exception("The provided individual: " +row.toString()+ " do not match the defined settings.");
 				}
 				for(int i = 0; i < row.getNumCells(); i++) {
 					
@@ -185,7 +206,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			}
 		}
     	//Generates an initial population
-    	
+    	System.out.println(this.individualCount.getIntValue());
     	do {
     		exec.checkCanceled();
     		Individual individual = new Individual();
@@ -195,7 +216,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	    		do {
 	//    			individual.setValue(individual.getValue().concat(String.valueOf(random.nextInt(2))));
 	    			individual.getValue().add(symbols[random.nextInt(symbols.length)]);
-	    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
+	    		}while(individual.getValue().size() < this.genesCount.getIntValue());
 	    		
 	    		firstPopulation.getIndividuals().add(individual);
     		}else {
@@ -205,7 +226,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     				if(!individual.getValue().contains(str)) {
     					individual.getValue().add(str);
     				}
-	    		}while(individual.getValue().size() < this.cromossomesCount.getIntValue());
+	    		}while(individual.getValue().size() < this.genesCount.getIntValue());
 	    		
 	    		firstPopulation.getIndividuals().add(individual);
     		}
@@ -323,15 +344,17 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         
         individualCount.saveSettingsTo(settings);
         generationCount.saveSettingsTo(settings);
-        cromossomesCount.saveSettingsTo(settings);
+        genesCount.saveSettingsTo(settings);
         crossoverCount.saveSettingsTo(settings);
         mutationCount.saveSettingsTo(settings);
         elitism.saveSettingsTo(settings);
         path.saveSettingsTo(settings);
         crossoverType.saveSettingsTo(settings);
-        geneSymbols.saveSettingsTo(settings);
+//        geneSymbols.saveSettingsTo(settings);
         stopCondition.saveSettingsTo(settings);
         orderBased.saveSettingsTo(settings);
+        bestIndividualsCount.saveSettingsTo(settings);
+        elitismType.saveSettingsTo(settings);
     }
 
     /**
@@ -347,15 +370,17 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
         
         individualCount.loadSettingsFrom(settings);
         generationCount.loadSettingsFrom(settings);
-        cromossomesCount.loadSettingsFrom(settings);
+        genesCount.loadSettingsFrom(settings);
         crossoverCount.loadSettingsFrom(settings);
         mutationCount.loadSettingsFrom(settings);
         elitism.loadSettingsFrom(settings);
         path.loadSettingsFrom(settings);
         crossoverType.loadSettingsFrom(settings);
-        geneSymbols.loadSettingsFrom(settings);
+//        geneSymbols.loadSettingsFrom(settings);
         stopCondition.loadSettingsFrom(settings);
         orderBased.loadSettingsFrom(settings);
+        bestIndividualsCount.loadSettingsFrom(settings);
+        elitismType.loadSettingsFrom(settings);
     }
 
     /**
@@ -372,24 +397,26 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	
         individualCount.validateSettings(settings);
         generationCount.validateSettings(settings);
-        cromossomesCount.validateSettings(settings);
+        genesCount.validateSettings(settings);
         crossoverCount.validateSettings(settings);
         mutationCount.validateSettings(settings);
         elitism.validateSettings(settings);
         path.validateSettings(settings);
         crossoverType.validateSettings(settings);
-        geneSymbols.validateSettings(settings);
+//        geneSymbols.validateSettings(settings);
         stopCondition.validateSettings(settings);
         orderBased.validateSettings(settings);
+        bestIndividualsCount.validateSettings(settings);
+        elitismType.validateSettings(settings);
         
         Boolean order = settings.getBoolean(ORDER_BASED_STR);
-        Integer genesCount = settings.getInt(CROMOSSOMES_STR);
-        String genes = settings.getString(GENE_SYMBOLS_STR);
-        String[] symbols = genes.split(",");
-        if(order && symbols.length < genesCount) {
-        	throw setValidadeException("It was provided less symbols than the number of genes available "
-        			+ "which is an invalid setting for order-based algorithms.");
-        }
+        Integer genesCount = settings.getInt(GENES_STR);
+//        String genes = settings.getString(GENE_SYMBOLS_STR);
+//        String[] symbols = genes.split(",");
+//        if(order && symbols.length < genesCount) {
+//        	throw setValidadeException("It was provided less symbols than the number of genes available "
+//        			+ "which is an invalid setting for order-based algorithms.");
+//        }
         String filePath = settings.getString(SCRIPT_STR);
         if(filePath.equals("")) {
         	throw setValidadeException("It is required an evaluation function.");
@@ -449,6 +476,14 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		return false;
     		
     	}
+    	/**
+    	 * 
+    	 * Method return a random Char defined in alphabet constant
+    	 */
+    	protected String nextChar() {
+    		return Character.toString(ALPHABET.charAt(new Random().nextInt(ALPHABET.length())));
+    	}
+    	
 //    protected Individual geneticAlgorithm(final ExecutionContext exec) throws CanceledExecutionException {
     	protected Population geneticAlgorithm(final ExecutionContext exec, Population population) throws CanceledExecutionException {
     	
@@ -473,24 +508,44 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 //    		generation++;
 		
 		//crossover
-		switch(this.crossoverType.getStringValue()) {
+		if(this.orderBased.getBooleanValue()) {
+			switch(this.crossoverType.getStringValue()) {
+	    		case "Single Point":
+	    			newPopulation = singlePointCrossoverOrderBased(newPopulation, exec);
+	    			break;
+	    		case "Double Point":
+	    			newPopulation = doublePointCrossoverOrderBased(newPopulation, exec);
+	    			break;
+	    		case "Uniform":
+	    			newPopulation = uniformCrossoverOrderBased(newPopulation, exec);
+	    			break;
+	    		default: 
+	    			newPopulation = singlePointCrossoverOrderBased(newPopulation, exec);
+	    			break;
+			}
+		}else {
+			switch(this.crossoverType.getStringValue()) {
     		case "Single Point":
     			newPopulation = singlePointCrossover(newPopulation, exec);
     			break;
     		case "Double Point":
     			newPopulation = doublePointCrossover(newPopulation, exec);
     			break;
-    		case "uniform":
+    		case "Uniform":
     			newPopulation = uniformCrossover(newPopulation, exec);
     			break;
     		default: 
     			newPopulation = singlePointCrossover(newPopulation, exec);
     			break;
 		}
+		}
 		
 		//mutation
-		newPopulation = mutation(newPopulation, exec);
-		
+		if(this.orderBased.getBooleanValue()) {
+			newPopulation = mutationOrderBased(newPopulation, exec);
+		}else {
+			newPopulation = mutation(newPopulation, exec);
+		}
 		//evaluation
 		newPopulation = evaluate(newPopulation, exec);
 		endTime = System.currentTimeMillis()/1000;
@@ -498,8 +553,10 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		endTime = startTime = 0L;
 		
 		bestIndividual = newPopulation.getBestIndividual();
+		NodeLogger logger = NodeLogger.getLogger(Joiner2NodeModel.class);
 		
-    	
+		logger.warn("Population's best Individual: "+ bestIndividual.getValue());
+		logger.warn("fitness: "+bestIndividual.getFitness());
 //    	return bestIndividual;
     	return newPopulation;
     	
@@ -555,9 +612,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 //    		wheelList.add(rand);
 //    	}
     	
-    	if(this.elitism.getBooleanValue()) {
-    		individualList.add(population.getBestIndividual());
-    	}
     	
     	//Calculates the probability of the individual to go to the next generation
     	for(Individual individual : population.getIndividuals()) {
@@ -582,7 +636,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 //    	}
 //    	
     	
-    	for(int i = 0; i < this.individualCount.getIntValue(); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
+    	for(int i = 0; i < (this.elitism.getBooleanValue() ? this.individualCount.getIntValue() - this.bestIndividualsCount.getIntValue() : this.individualCount.getIntValue()); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
     		Double floor = 0D;
     		exec.checkCanceled();
     		rand = Math.random();
@@ -600,9 +654,30 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	    	
     	}
     	
+
+    	if(this.elitism.getBooleanValue()) {
+			if(this.elitismType.getStringValue().equals("%")) {
+				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+				List<Individual> best = population.getBestIndividual(i);
+				for(Individual individual : best) {
+					individualList.add(individual);
+				}
+			}else {
+				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
+				for(Individual individual : best) {
+					individualList.add(individual);
+				}
+			}
+    	}
+    	
     	returnPopulation.setIndividuals(individualList);
     	return returnPopulation;
     }
+   
+    Population uniformCrossoverOrderBased(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+    	return new Population();
+    }
+    	   
     
     Population uniformCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
@@ -611,47 +686,35 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	int count = 0; //VERIFIES IF THERE'S ALREADY AN INDIVIDUAL SELECTED TO THE CROSSOVER
     	
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
-    	if(this.elitism.getBooleanValue()) {
-    		returnPopulation.getIndividuals().add(population.getBestIndividual());
-    	}
-    	for(Individual individual : population.getIndividuals()) {
+    	
+    	
+    	for(Individual ind : population.getIndividuals()) {
     		exec.checkCanceled();
+    		
+    		if(this.elitism.getBooleanValue() && (returnPopulation.getIndividuals().size() >= population.getIndividuals().size()- this.bestIndividualsCount.getIntValue())){
+    			break;
+    		}
     		if(returnPopulation.getIndividuals().size() == population.getIndividuals().size()) {
     			break;
     		}
+    		Individual individual = new Individual();
+    		individual = ind;
     		if(Math.random()<this.crossoverCount.getDoubleValue()) {
     			if(count <1) {								//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S NO ONE STORED
     				previousIndividual = individual;
     				count++;
     			}else {										//IF THE INDIVIDUAL IS CHOOSEN, AND THERE'S ALREADY ONE STORED
-    				
-//    				String str = "";
-    				
-//    				if(previousIndividual.getValue().size()>1) {
-//	    				for(String string : previousIndividual.getValue()) {
-//	    					str = str.concat(string);
-//	    				}
-//    				}else {
-//    					str = previousIndividual.getValue().get(0);
-//    				}
-//    				char[] previousIndividualChars = str.toCharArray();
-//    				
-//    				if(individual.getValue().size()>1) {
-//    					for(String string : individual.getValue()) {
-//        					str = str.concat(string);
-//        				}
-//    				}else {
-//    					str = individual.getValue().get(0);
-//    				}
-//    				    				
-//					char[] individualChars = str.toCharArray();
-					
+    				List<String> mask = new ArrayList<>();
+    		    	
+    		    	for(int i = 0; i < this.genesCount.getIntValue(); i++) {
+    		    		mask.add(String.valueOf(new Random().nextInt(2)));
+    		    	}
     				ArrayList<String> previousIndividualChars = previousIndividual.getValue();
     				ArrayList<String> individualChars = individual.getValue();
     				
 					String aux;
-					for(int i = 0; i < individualChars.size(); i++) { 	//ITERATE OVER THE CROMOSSOMES
-						if(Math.random() < this.crossoverCount.getDoubleValue()) {								
+					for(int i = 0; i < mask.size(); i++) { 	//ITERATE OVER THE GENES
+						if(mask.get(i).equals("1")) {								
 							aux = previousIndividualChars.get(i);
 							previousIndividualChars.set(i, individualChars.get(i));
 							individualChars.set(i, aux);
@@ -678,8 +741,29 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		}
     		
     	}
+    	
+    	if(this.elitism.getBooleanValue()) {
+			if(this.elitismType.getStringValue().equals("%")) {
+				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+				List<Individual> best = population.getBestIndividual(i);
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}else {
+				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}
+    	}
+    	
     	return returnPopulation;
     }
+    
+    Population doublePointCrossoverOrderBased(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+    	   return new Population();
+    }
+    
     
 	Population doublePointCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
@@ -688,11 +772,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     	int count = 0; //VERIFIES IF THERE'S ALREADY A INDIVIDUAL SELECTED TO THE CROSSOVER
     	
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
-    	if(this.elitism.getBooleanValue()) {
-    		returnPopulation.getIndividuals().add(population.getBestIndividual());
-    	}
+    	
     	for(Individual individual : population.getIndividuals()) {
     		exec.checkCanceled();
+    		
+    		if(this.elitism.getBooleanValue() && (returnPopulation.getIndividuals().size() == population.getIndividuals().size()- this.bestIndividualsCount.getIntValue())){
+    			break;
+    		}
     		if(returnPopulation.getIndividuals().size() == population.getIndividuals().size()) {
     			break;
     		}
@@ -766,22 +852,41 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		}
     		
     	}
+    	if(this.elitism.getBooleanValue()) {
+			if(this.elitismType.getStringValue().equals("%")) {
+				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+				List<Individual> best = population.getBestIndividual(i);
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}else {
+				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}
+    	}
     	return returnPopulation;
     }
 
-    Population singlePointCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+	Population singlePointCrossoverOrderBased(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+	    return new Population();
+	}
+	
+	Population singlePointCrossover(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
     	
     	int count = 0; //VERIFIES IF THERE'S ALREADY A INDIVIDUAL SELECTED TO THE CROSSOVER
     	
     	Individual previousIndividual = new Individual(); 	//STORES THE FIRST INDIVIDUAL TO BE CROSSOVERED
-    	if(this.elitism.getBooleanValue()) {
-    		returnPopulation.getIndividuals().add(population.getBestIndividual());
-    	}
+    
     	for(Individual individual : population.getIndividuals()) {
     		
     		exec.checkCanceled();
+    		if(this.elitism.getBooleanValue() && (returnPopulation.getIndividuals().size() == population.getIndividuals().size()- this.bestIndividualsCount.getIntValue())){
+    			break;
+    		}
 			if(returnPopulation.getIndividuals().size() == population.getIndividuals().size()) {
     			break;
     		}
@@ -845,20 +950,42 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     		}
     		
     	}
+    	
+    	if(this.elitism.getBooleanValue()) {
+			if(this.elitismType.getStringValue().equals("%")) {
+				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+				List<Individual> best = population.getBestIndividual(i);
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}else {
+				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}
+    	}
     	return returnPopulation;
     }
     
-    Population mutation(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+	Population mutationOrderBased(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
+	    return new Population();
+	}
+	
+	Population mutation(Population population, final ExecutionContext exec) throws CanceledExecutionException  {
     	
     	Population returnPopulation = new Population();
-    	if(this.elitism.getBooleanValue()) {
-    		returnPopulation.getIndividuals().add(population.getBestIndividual());
-    	}
-    	for(Individual individual : population.getIndividuals()) {
+    	
+    	for(Individual ind : population.getIndividuals()) {
     		exec.checkCanceled();
+    		if(this.elitism.getBooleanValue() && (returnPopulation.getIndividuals().size() == population.getIndividuals().size()- this.bestIndividualsCount.getIntValue())){
+    			break;
+    		}
 			if(returnPopulation.getIndividuals().size() >= population.getIndividuals().size()) {
     			break;
     		}
+			Individual individual = new Individual();
+			individual = ind;
     		if(Math.random()<this.mutationCount.getDoubleValue()) {
     			
 //    			String str = "";
@@ -894,7 +1021,20 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
     			returnPopulation.getIndividuals().add(individual);
     		}
     	}
-    	
+    	if(this.elitism.getBooleanValue()) {
+			if(this.elitismType.getStringValue().equals("%")) {
+				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+				List<Individual> best = population.getBestIndividual(i);
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}else {
+				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
+				for(Individual individual : best) {
+					returnPopulation.getIndividuals().add(individual);
+				}
+			}
+    	}
     	return returnPopulation; 
     }
 

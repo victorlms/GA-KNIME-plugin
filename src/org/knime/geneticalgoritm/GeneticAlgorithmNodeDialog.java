@@ -39,29 +39,54 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         super();
         
         createNewGroup("Population Settings:");
+        setHorizontalPlacement(true);
+        
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
-        				GeneticAlgorithmNodeModel.CROMOSSOMES_STR,
-        				GeneticAlgorithmNodeModel.CROMOSSOMES_COUNT,
+        				GeneticAlgorithmNodeModel.GENES_STR,
+        				GeneticAlgorithmNodeModel.GENES_COUNT,
         				1, 1000),
-        		"Cromossomes", 1));
+        		"Genes", 1));
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
         				GeneticAlgorithmNodeModel.INDIVIDUAL_STR,
         				GeneticAlgorithmNodeModel.INDIVIDUAL_COUNT,
         				1, 10000),
-        		"Individuals", 1 ));
+        		"Cromossomes", 1 ));
+        setHorizontalPlacement(false);
         
         addDialogComponent(new DialogComponentBoolean(
         		new SettingsModelBoolean(
         				GeneticAlgorithmNodeModel.ORDER_BASED_STR,
         				GeneticAlgorithmNodeModel.ORDER_BASED),
         				"Order-based"));
-        addDialogComponent(new DialogComponentString(
-        		new SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR, 
-        				GeneticAlgorithmNodeModel.GENE_SYMBOLS),
-        		"Gene Symbols"));
+        setHorizontalPlacement(true);
         
+        addDialogComponent(new DialogComponentBoolean(
+        		new SettingsModelBoolean(
+        				GeneticAlgorithmNodeModel.ELITISM_STR,
+        				GeneticAlgorithmNodeModel.ELITISM_STATE),
+        				"Elitism"));
+        
+        addDialogComponent(new DialogComponentNumber(
+        		new SettingsModelIntegerBounded(
+        				GeneticAlgorithmNodeModel.BEST_STR,
+        				GeneticAlgorithmNodeModel.BEST_COUNT,
+        				1, 100),
+        		"", 1));
+        addDialogComponent(new DialogComponentStringSelection(
+        		new SettingsModelString(GeneticAlgorithmNodeModel.ELITISM_TYPE_STR,
+        				GeneticAlgorithmNodeModel.ELITISM_TYPE),
+        		"", "Individual(s)","%"));
+
+        
+        setHorizontalPlacement(false);
+        
+        /*
+		 * addDialogComponent(new DialogComponentString( new
+		 * SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR,
+		 * GeneticAlgorithmNodeModel.GENE_SYMBOLS), "Gene Symbols"));
+		 */
         createNewGroup("Operators Settings");
         setHorizontalPlacement(true);
         addDialogComponent(new DialogComponentNumber(
@@ -83,23 +108,21 @@ public class GeneticAlgorithmNodeDialog extends DefaultNodeSettingsPane {
         				0, 1),
         		"Mutation rate", 0.01));
         
-        createNewGroup("Algorithm Settings:");
-        addDialogComponent(new DialogComponentStringSelection(
-        		new SettingsModelString(GeneticAlgorithmNodeModel.STOP_CONDITION_STR,
-        				GeneticAlgorithmNodeModel.STOP_CONDITION),
-        		"Stop condition", "Generations","Minutes"));
-        
+        createNewGroup("Stop Condition:");
+        setHorizontalPlacement(true);
         addDialogComponent(new DialogComponentNumber(
         		new SettingsModelIntegerBounded(
         				GeneticAlgorithmNodeModel.GENERATION_STR,
         				GeneticAlgorithmNodeModel.GENERATION_COUNT,
         				1, 10000),
-        		"Number or minutes", 1));
-        addDialogComponent(new DialogComponentBoolean(
-        		new SettingsModelBoolean(
-        				GeneticAlgorithmNodeModel.ELITISM_STR,
-        				GeneticAlgorithmNodeModel.ELITISM_STATE),
-        				"Elitism"));
+        		"", 1));
+        
+        addDialogComponent(new DialogComponentStringSelection(
+        		new SettingsModelString(GeneticAlgorithmNodeModel.STOP_CONDITION_STR,
+        				GeneticAlgorithmNodeModel.STOP_CONDITION),
+        		"", "Generations","Minutes"));
+        
+        setHorizontalPlacement(false);
         
         createNewGroup("Evaluation Function:");
         addDialogComponent(new DialogComponentFileChooser(
