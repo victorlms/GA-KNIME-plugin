@@ -30,39 +30,51 @@ public class Population {
 	}
 	
 	public Individual getBestIndividual() {
-		Individual bestIndividual = new Individual();
-		for(Individual individual : this.individuals) {
-			if(individual.getFitness()>bestIndividual.getFitness()) {
-				bestIndividual = individual;
-			}
-		}
-		return bestIndividual;
+//		Individual bestIndividual = new Individual();
+//		for(Individual individual : this.individuals) {
+//			if(individual.getFitness()>bestIndividual.getFitness()) {
+//				bestIndividual = individual;
+//			}
+//		}
+		Individual i = Collections.max(this.individuals);
+		return i;
 	}
 	
 	public List<Individual> getBestIndividual(Integer count) {
 		List<Individual> bestList = new ArrayList<>();
-		Individual bestIndividual = new Individual();
+//		Individual bestIndividual = new Individual();
+//		
+//		for(int i = 0; i< count;i++) {
+//			bestList.add(this.individuals.get(i));
+//		}
+//		
+//		for(Individual individual : this.individuals) {
+//			
+//			int index = 0;
+//			boolean control = false;
+//			
+//			for(Individual best : bestList) {
+//				if(best.getFitness() < bestList.get(index).getFitness()) {
+//					index = bestList.indexOf(best);
+//					control = true;
+//				}
+//			}
+//
+//			if(control && individual.getFitness() > bestList.get(index).getFitness()) {
+//				bestList.set(index, individual);
+//			}
+//		}
 		
-		for(int i = 0; i< count;i++) {
-			bestList.add(this.individuals.get(i));
+		List<Individual> sortedList = new ArrayList<>();
+		sortedList.addAll(this.individuals);
+		Collections.sort(sortedList);
+		
+		Collections.reverse(sortedList);
+		
+		for(int i = 0;i<count;i++) {
+			bestList.add(sortedList.get(i));
 		}
 		
-		for(Individual individual : this.individuals) {
-			
-			int index = 0;
-			boolean control = false;
-			
-			for(Individual best : bestList) {
-				if(best.getFitness() < bestList.get(index).getFitness()) {
-					index = bestList.indexOf(best);
-					control = true;
-				}
-			}
-
-			if(control && individual.getFitness() > bestList.get(index).getFitness()) {
-				bestList.set(index, individual);
-			}
-		}
 		return bestList;
 	}
 		

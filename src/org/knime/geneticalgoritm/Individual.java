@@ -2,7 +2,7 @@ package org.knime.geneticalgoritm;
 
 import java.util.ArrayList;
 
-public class Individual {
+public class Individual implements Comparable<Individual>{
 
 	private ArrayList<String> value;
 	private Double fitness;
@@ -18,6 +18,14 @@ public class Individual {
 		this.value = new ArrayList<String>();
 		this.fitness = 0D;
 		this.selectionProbability = 0D;
+	}
+	
+	@Override
+	public int compareTo(Individual i) {
+		if(i == null || this.fitness == null || i.fitness == null || i.fitness == this.fitness) {
+			return 0;
+		}
+		return this.getFitness().compareTo(i.getFitness());
 	}
 	
 	public ArrayList<String> getValue() {

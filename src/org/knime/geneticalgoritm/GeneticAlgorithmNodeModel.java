@@ -524,14 +524,14 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	    			break;
 			}
 		}else {
-			switch(this.crossoverType.getStringValue()) {
-    		case "Single Point":
+			switch(this.crossoverType.getStringValue().toUpperCase()) {
+    		case "SINGLE POINT":
     			newPopulation = singlePointCrossover(newPopulation, exec);
     			break;
-    		case "Double Point":
+    		case "DOUBLE POINT":
     			newPopulation = doublePointCrossover(newPopulation, exec);
     			break;
-    		case "Uniform":
+    		case "UNIFORM":
     			newPopulation = uniformCrossover(newPopulation, exec);
     			break;
     		default: 
@@ -635,8 +635,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 //    		
 //    	}
 //    	
-    	
-    	for(int i = 0; i < (this.elitism.getBooleanValue() ? this.individualCount.getIntValue() - this.bestIndividualsCount.getIntValue() : this.individualCount.getIntValue()); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
+    	for(int i = 0; i < (this.elitism.getBooleanValue() ? (this.individualCount.getIntValue() - this.bestIndividualsCount.getIntValue()) : this.individualCount.getIntValue()); i++) { //ITERATE THE INDIVIDUALS COUNT TIMES TO THE NEW POPULATION
     		Double floor = 0D;
     		exec.checkCanceled();
     		rand = Math.random();
@@ -659,14 +658,17 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			if(this.elitismType.getStringValue().equals("%")) {
 				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 				List<Individual> best = population.getBestIndividual(i);
-				for(Individual individual : best) {
-					individualList.add(individual);
+				if(best != null && !best.isEmpty()) {
+					individualList.addAll(best);
 				}
 			}else {
 				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
-				for(Individual individual : best) {
-					individualList.add(individual);
+				if(best != null && !best.isEmpty()) {
+					individualList.addAll(best);
 				}
+				//for(Individual individual : best) {
+//					individualList.add(individual);
+//				}
 			}
     	}
     	
@@ -746,13 +748,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			if(this.elitismType.getStringValue().equals("%")) {
 				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 				List<Individual> best = population.getBestIndividual(i);
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}else {
 				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}
     	}
@@ -856,13 +858,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			if(this.elitismType.getStringValue().equals("%")) {
 				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 				List<Individual> best = population.getBestIndividual(i);
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}else {
 				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}
     	}
@@ -955,13 +957,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			if(this.elitismType.getStringValue().equals("%")) {
 				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 				List<Individual> best = population.getBestIndividual(i);
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}else {
 				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}
     	}
@@ -1025,13 +1027,13 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			if(this.elitismType.getStringValue().equals("%")) {
 				int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 				List<Individual> best = population.getBestIndividual(i);
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}else {
 				List<Individual> best = population.getBestIndividual(this.bestIndividualsCount.getIntValue());
-				for(Individual individual : best) {
-					returnPopulation.getIndividuals().add(individual);
+				if(best != null && !best.isEmpty()) {
+					returnPopulation.getIndividuals().addAll(best);
 				}
 			}
     	}
