@@ -36,8 +36,10 @@ public class Population {
 //				bestIndividual = individual;
 //			}
 //		}
-		Individual i = Collections.max(this.individuals);
-		return i;
+
+		Collections.sort(this.individuals, Collections.reverseOrder());
+//		Individual i = (Individual) Collections.max(this.individuals).clone();
+		return (Individual) this.individuals.get(0).clone();
 	}
 	
 	public List<Individual> getBestIndividual(Integer count) {
@@ -67,12 +69,11 @@ public class Population {
 		
 		List<Individual> sortedList = new ArrayList<>();
 		sortedList.addAll(this.individuals);
-		Collections.sort(sortedList);
+		Collections.sort(sortedList, Collections.reverseOrder());
 		
-		Collections.reverse(sortedList);
 		
 		for(int i = 0;i<count;i++) {
-			bestList.add(sortedList.get(i));
+			bestList.add((Individual) sortedList.get(i).clone());
 		}
 		
 		return bestList;

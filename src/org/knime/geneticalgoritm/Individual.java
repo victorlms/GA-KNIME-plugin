@@ -2,7 +2,7 @@ package org.knime.geneticalgoritm;
 
 import java.util.ArrayList;
 
-public class Individual implements Comparable<Individual>{
+public class Individual implements Cloneable, Comparable<Individual>{
 
 	private ArrayList<String> value;
 	private Double fitness;
@@ -25,7 +25,7 @@ public class Individual implements Comparable<Individual>{
 		if(i == null || this.fitness == null || i.fitness == null || i.fitness == this.fitness) {
 			return 0;
 		}
-		return this.getFitness().compareTo(i.getFitness());
+		return Double.compare(this.getFitness(), i.getFitness());
 	}
 	
 	public ArrayList<String> getValue() {
@@ -36,6 +36,8 @@ public class Individual implements Comparable<Individual>{
 	}
 	public void resetValue(ArrayList<String> value) {
 		this.value = value;
+		this.fitness = 0D;
+		this.selectionProbability =  0D;
 	}
 	public Double getFitness() {
 		return fitness;
@@ -58,6 +60,16 @@ public class Individual implements Comparable<Individual>{
 			sValue = sValue.concat(s);
 		}
 		return sValue;
+	}
+	
+	public Object clone() {
+		try {
+			return super.clone();
+		} catch (CloneNotSupportedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 }
