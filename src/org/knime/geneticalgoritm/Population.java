@@ -4,21 +4,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Population {
+public class Population implements Cloneable {
 
 	private List<Individual> individuals;
 	private Long executionTime;
+	
+	private List<Individual> bestIndividuals;
 	
 	public Population(List<Individual> individuals) {
 		super();
 		this.individuals = individuals;
 		this.executionTime = 0L;
+		this.bestIndividuals = new ArrayList<>();
 	}
 	
 	public Population() {
 		super();
 		this.individuals = new ArrayList<Individual>();
 		this.executionTime = 0L;
+		this.bestIndividuals = new ArrayList<>();
 	}
 	
 	public List<Individual> getIndividuals() {
@@ -29,46 +33,21 @@ public class Population {
 		this.individuals = individuals;
 	}
 	
-	public Individual getBestIndividual() {
-//		Individual bestIndividual = new Individual();
-//		for(Individual individual : this.individuals) {
-//			if(individual.getFitness()>bestIndividual.getFitness()) {
-//				bestIndividual = individual;
-//			}
-//		}
-
-		Collections.sort(this.individuals, Collections.reverseOrder());
-//		Individual i = (Individual) Collections.max(this.individuals).clone();
-		return (Individual) this.individuals.get(0).clone();
+	public List<Individual> getBestIndividual() {
+		return this.bestIndividuals;		
 	}
 	
-	public List<Individual> getBestIndividual(Integer count) {
+	public void defineBest(Integer count) {
 		List<Individual> bestList = new ArrayList<>();
-//		Individual bestIndividual = new Individual();
-//		
-//		for(int i = 0; i< count;i++) {
-//			bestList.add(this.individuals.get(i));
-//		}
-//		
-//		for(Individual individual : this.individuals) {
-//			
-//			int index = 0;
-//			boolean control = false;
-//			
-//			for(Individual best : bestList) {
-//				if(best.getFitness() < bestList.get(index).getFitness()) {
-//					index = bestList.indexOf(best);
-//					control = true;
-//				}
-//			}
-//
-//			if(control && individual.getFitness() > bestList.get(index).getFitness()) {
-//				bestList.set(index, individual);
-//			}
-//		}
 		
 		List<Individual> sortedList = new ArrayList<>();
-		sortedList.addAll(this.individuals);
+
+		for(int i = 0; i<this.individuals.size(); i++) {
+			sortedList.add(new Individual());
+		}
+		
+		Collections.copy(sortedList, this.individuals);
+		
 		Collections.sort(sortedList, Collections.reverseOrder());
 		
 		
@@ -76,8 +55,10 @@ public class Population {
 			bestList.add((Individual) sortedList.get(i).clone());
 		}
 		
-		return bestList;
+		Collections.sort(bestList, Collections.reverseOrder());
+		this.bestIndividuals = bestList;
 	}
+	
 		
 	public Double getSumFitness() {
 		Double sum = 0D;
@@ -97,6 +78,20 @@ public class Population {
 	
 	public void setExecutionTime(Long time) {
 		this.executionTime = time;
+	}
+	
+	public List<Individual> getBestIndividuals() {
+		return this.bestIndividuals;
+	}
+	
+	public Object clone() {
+		try {
+			return super.clone();
+		} catch (CloneNotSupportedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 }
