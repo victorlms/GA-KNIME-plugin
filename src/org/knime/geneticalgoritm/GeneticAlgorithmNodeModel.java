@@ -113,12 +113,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	private SettingsModelString crossoverType = new SettingsModelString(GeneticAlgorithmNodeModel.CROSSOVER_TYPE_STR,
 			GeneticAlgorithmNodeModel.CROSSOVER_TYPE);
 
-	/*
-	 * private SettingsModelString geneSymbols = new
-	 * SettingsModelString(GeneticAlgorithmNodeModel.GENE_SYMBOLS_STR,
-	 * GeneticAlgorithmNodeModel.GENE_SYMBOLS);
-	 */
-
 	private final SettingsModelString stopCondition = new SettingsModelString(
 			GeneticAlgorithmNodeModel.STOP_CONDITION_STR, GeneticAlgorithmNodeModel.STOP_CONDITION);
 
@@ -148,18 +142,14 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 	protected BufferedDataTable[] execute(final BufferedDataTable[] inData, final ExecutionContext exec)
 			throws Exception {
 
+		exec.setProgress(0, "Validating");
 		String[] symbols = new String[2];
 		symbols[0] = "0";
 		symbols[1] = "1";// this.geneSymbols.getStringValue().split(",");
 		if (this.path.getStringValue().equals("")) {
 			throw new Exception("It is required an evaluation function. Check node settings.");
 		}
-		// if(this.orderBased.getBooleanValue()
-		// && this.genesCount.getIntValue() != symbols.length) {
-		// throw new Exception("It was provided less symbols than the number of genes
-		// available" +
-		// "which is an invalid setting for order-based algorithms.");
-		// }
+
 		Long startTime = System.currentTimeMillis() / 1000;
 		List<Population> populations = new ArrayList<Population>();
 		Population firstPopulation = new Population();
@@ -173,6 +163,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		allColSpecs[2] = new DataColumnSpecCreator("Best Fitness", DoubleCell.TYPE).createSpec();
 //		allColSpecs[3] = new DataColumnSpecCreator("Execution Time", DoubleCell.TYPE).createSpec();
 		DataTableSpec outputSpec = new DataTableSpec(allColSpecs);
+
 		// the execution context will provide us with storage capacity, in this
 		// case a data container to which we will add rows sequentially
 		// Note, this container can also handle arbitrary big data tables, it
@@ -180,10 +171,11 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		BufferedDataContainer container = exec.createDataContainer(outputSpec);
 		BufferedDataTable table = inData[0];
 		// populate with provided individuals
+
+		exec.setProgress(0, "Reading provided individuals");
 		if (table.size() > 0) {
 			for (DataRow row : table) {
 				Individual definedIndividual = new Individual();
-				// String str = inData[0].toString();
 				if (row.getNumCells() != genesCount.getIntValue()) {
 					throw new Exception(
 							"The provided individual: " + row.toString() + " do not match the defined settings.");
@@ -200,7 +192,9 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 				firstPopulation.getIndividuals().add(definedIndividual);
 			}
 		}
+
 		// Generates an initial population
+		exec.setProgress(0, "Generating first population");
 		do {
 			exec.checkCanceled();
 			Individual individual = new Individual();
@@ -240,11 +234,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		cell[0] = new DoubleCell(populations.get(0).getAverageFitness());
 		cell[1] = new StringCell(populations.get(0).getBestIndividuals().get(0).getValue().toString());
 		cell[2] = new DoubleCell(populations.get(0).getBestIndividuals().get(0).getFitness());
-//		cell[3] = new DoubleCell(populations.get(0).getExecutionTime().doubleValue());
 		DataRow row = new DefaultRow(key, cell);
-		// DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
 		container.addRowToTable(row);
-		// container.addRowToTable(fitnessRow);
 		index++;
 
 		if (!stopCondition.getStringValue().equalsIgnoreCase("Minutes")) {
@@ -258,17 +249,15 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 				cells[0] = new DoubleCell(populations.get(i + 1).getAverageFitness());
 				cells[1] = new StringCell(populations.get(i + 1).getBestIndividuals().get(0).getValue().toString());
 				cells[2] = new DoubleCell(populations.get(i + 1).getBestIndividuals().get(0).getFitness());
-//				cells[3] = new DoubleCell(populations.get(i + 1).getExecutionTime().doubleValue());
 				DataRow individualRow = new DefaultRow(individualKey, cells);
-				// DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
 				container.addRowToTable(individualRow);
-				// container.addRowToTable(fitnessRow);
-				exec.setProgress(i / (double) generationCount.getIntValue(), "Generation " + (i + 1));
+				exec.getProgressMonitor().setProgress(i / (double) generationCount.getIntValue(), "Generation " + (i + 1));
 
 				index++;
 			}
 		} else {
 			int i = 0;
+			double progressAux = 0D;
 			do {
 				exec.checkCanceled();
 
@@ -279,13 +268,16 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 				cells[0] = new DoubleCell(populations.get(i + 1).getAverageFitness());
 				cells[1] = new StringCell(populations.get(i + 1).getBestIndividuals().get(0).getValue().toString());
 				cells[2] = new DoubleCell(populations.get(i + 1).getBestIndividuals().get(0).getFitness());
-//				cells[3] = new DoubleCell(populations.get(i + 1).getExecutionTime().doubleValue());
 				DataRow individualRow = new DefaultRow(individualKey, cells);
-				// DataRow fitnessRow = new DefaultRow(fitnessKey, cells);
 				container.addRowToTable(individualRow);
-				// container.addRowToTable(fitnessRow);
-				exec.setProgress(this.stopTime / ((double) generationCount.getIntValue() * 60) * 100,
-						"Generation " + (i + 1));
+				
+				System.out.println(this.stopTime / ((double) this.generationCount.getIntValue() * 60) * 100);
+				System.out.println("PERCENT ACIMA");
+				System.out.println(this.generationCount.getIntValue() * 60);
+				System.out.println(populations.get(i).getExecutionTime());
+
+				progressAux = this.stopTime / ((double) this.generationCount.getIntValue() * 60);
+				exec.getProgressMonitor().setProgress(progressAux,"Generation " + (i + 1));
 				i++;
 				index++;
 			} while (!checkStopTime(populations.get(i).getExecutionTime()));
@@ -498,8 +490,8 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 
 		// crossover
 		if (this.orderBased.getBooleanValue()) {
-				newPopulation = shuffleCrossOver(newPopulation, exec);
-				
+			newPopulation = shuffleCrossOver(newPopulation, exec);
+
 		} else {
 			switch (this.crossoverType.getStringValue().toUpperCase()) {
 			case "SINGLE POINT":
@@ -530,7 +522,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		endTime = startTime = 0L;
 		newPopulation.defineBest(this.bestIndividualsCount.getIntValue());
 		bestIndividual = newPopulation.getBestIndividual().get(0);
-		NodeLogger logger = NodeLogger.getLogger(Joiner2NodeModel.class);
 
 		logger.warn("Population's best Individual: " + bestIndividual.getValue());
 		logger.warn("fitness: " + bestIndividual.getFitness());
@@ -549,88 +540,44 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			population.defineBest(this.bestIndividualsCount.getIntValue());
 		}
 
-		if (!population.getBestIndividuals().isEmpty()) {
-			System.out.println("EVALUATE BEST INDIVIDUAL START");
-			System.out.println(population.getBestIndividuals().get(0).getStringValue());
-			System.out.println(population.getBestIndividuals().get(0).getFitness());
-			System.out.println(population.getIndividuals().indexOf(population.getBestIndividuals().get(0)));
-
-		}
-		Long startEvaluation = System.nanoTime();
 		try {
 
 			for (Individual individual : population.getIndividuals()) {
-				// System.out.println("INDIVIDUAL START");
-				// System.out.println(individual.getStringValue());
-				// System.out.println(individual.getFitness());
-				/*
-				 * Path filePath; //Creates a new temp file that will actually be executed
-				 * filePath = Files.createTempFile("script", ".py"); Files.write(filePath,
-				 * lines, Charset.forName("UTF-8")); //Writes the Python code down in the file
-				 */
 				String value = "";
-				// List<String> valueList = individual.getValue();
 				value = individual.getStringValue();
-
-				// if(valueList.size() > 1) {
-				// for(String s : valueList) {
-				// value = value.concat(s);
-				// }
-				// }else {
-				// value = valueList.get(0);
-				// }
 				exec.checkCanceled();
-				ProcessBuilder processBuilder = new ProcessBuilder("python", this.path.getStringValue(), value); // Builds
-																													// the
-																													// process
-																													// that
-																													// will
-																													// execute
-																													// the
-																													// script
+
+				ProcessBuilder processBuilder = new ProcessBuilder("python", this.path.getStringValue(), value);
 				Process process = processBuilder.start();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream())); // Reads
-																												// the
-																												// output
-																												// from
-																												// the
-																												// script
+
+				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
 				String str = reader.readLine();
-				if (str != null) {
-					individual.setFitness(Double.parseDouble(str)); // Set individual fitness
-				} else {
-					individual.setFitness(-1D);
+				try {
+					individual.setFitness(Double.parseDouble(str));
+				} catch (Exception e) {
+					individual.setFitness(null);
+					logger.warn("Erro ao avaliar o indivíduo: " + individual.getStringValue());
 				}
-				// Files.deleteIfExists(filePath);
 				reader.close();
 				reader = null;
 				process.destroy();
 				processBuilder = null;
 				value = null;
 				str = null;
-				//
-				// System.out.println("INDIVIDUAL END");
-				// System.out.println(individual.getStringValue());
-				// System.out.println(individual.getFitness());
 
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Long endEvaluation = System.nanoTime();
 
-		System.out.println("Evaluation Time:");
-		System.out.println((endEvaluation - startEvaluation));
 		if (this.elitismType.getStringValue().equals("%")) {
 			int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
 			population.defineBest(i);
 		} else {
 			population.defineBest(this.bestIndividualsCount.getIntValue());
 		}
-		System.out.println("EVALUATE BEST INDIVIDUAL");
-		System.out.println(population.getBestIndividual().get(0).getStringValue());
-		System.out.println(population.getBestIndividual().get(0).getFitness());
-		return population; // return population with its fitness and individuals evaluated
+		return population;
 	}
 
 	Population selection(Population p, final ExecutionContext exec) throws CanceledExecutionException {
@@ -704,14 +651,12 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			int index = 0;
 			int last = 0;
 			while (floor < rand) { // FIND THE INDIVIDUAL CHOOSEN
+				if (population.getIndividuals().get(index).getFitness() == null)
+					continue;
 				floor += population.getIndividuals().get(index).getFitness();
 				last = index;
 				index++;
 			}
-			// individualList.add(new Individual(
-			// population.getIndividuals().get(last).getValue(),
-			// population.getIndividuals().get(last).getFitness(),
-			// population.getIndividuals().get(last).getSelectionProbability()));
 
 			individualList.add((Individual) population.getIndividuals().get(last).clone());
 			rand = Math.random();
@@ -1139,7 +1084,7 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 					List<String> child1Missing = new ArrayList<>();
 					String[] child2 = new String[previousIndividualChars.length];
 					List<String> child2Missing = new ArrayList<>();
-					
+
 					for (int i = 0; i < mask.size(); i++) {
 						if (mask.get(i).equals("1")) {
 							child1[i] = individualChars[i];
@@ -1160,22 +1105,22 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 							child2Missing.add(previousIndividualChars[i]);
 						}
 					}
-					
-					for(int i = 0; i < individualChars.length; i++) {
-						if(child1Missing.contains(individualChars[i].toString())) {
-							for(int j = 0;j<child1.length;j++) {
-								if(child1[i].equals("0")) {
+
+					for (int i = 0; i < individualChars.length; i++) {
+						if (child1Missing.contains(individualChars[i].toString())) {
+							for (int j = 0; j < child1.length; j++) {
+								if (child1[i].equals("0")) {
 									child1[i] = individualChars[i];
 									break;
 								}
 							}
 						}
 					}
-					
-					for(int i = 0; i < previousIndividualChars.length; i++) {
-						if(child2Missing.contains(previousIndividualChars[i].toString())) {
-							for(int j = 0;j<child2.length;j++) {
-								if(child2[i].equals("0")) {
+
+					for (int i = 0; i < previousIndividualChars.length; i++) {
+						if (child2Missing.contains(previousIndividualChars[i].toString())) {
+							for (int j = 0; j < child2.length; j++) {
+								if (child2[i].equals("0")) {
 									child2[i] = previousIndividualChars[i];
 									break;
 								}
@@ -1232,9 +1177,94 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 
 	}
 
-	Population mutationOrderBased(Population population, final ExecutionContext exec)
-			throws CanceledExecutionException {
-		return new Population();
+	Population mutationOrderBased(Population p, final ExecutionContext exec) throws CanceledExecutionException {
+
+		Population population = new Population();
+
+		Population returnPopulation = new Population();
+
+		population.setIndividuals(new ArrayList<>());
+
+		for (int i = 0; i < p.getIndividuals().size(); i++) {
+			population.getIndividuals().add(new Individual());
+		}
+		// sortedList.addAll(this.individuals);
+
+		Collections.copy(population.getIndividuals(), p.getIndividuals());
+
+		if (this.elitismType.getStringValue().equals("%")) {
+			int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+			population.defineBest(i);
+		} else {
+			population.defineBest(this.bestIndividualsCount.getIntValue());
+		}
+
+		for (Individual ind : population.getIndividuals()) {
+			exec.checkCanceled();
+			if (this.elitism.getBooleanValue() && (returnPopulation.getIndividuals()
+					.size() == population.getIndividuals().size() - this.bestIndividualsCount.getIntValue())) {
+				break;
+			}
+			if (returnPopulation.getIndividuals().size() >= population.getIndividuals().size()) {
+				break;
+			}
+			Individual individual = new Individual();
+			individual = (Individual) ind.clone();
+
+			if (Math.random() < this.mutationCount.getDoubleValue()) {
+
+				String[] individualChars = new String[individual.getValue().size()];
+
+				for (int i = 0; i < individual.getValue().size(); i++) {
+					individualChars[i] = individual.getValue().get(i);
+				}
+
+				Random random = new Random();
+
+				int first = random.nextInt(individualChars.length - 1);
+				int second;
+
+				do {
+					second = random.nextInt(individualChars.length - 1);
+				} while (first == second);
+
+				String aux = individualChars[first];
+
+				individualChars[first] = individualChars[second];
+
+				individualChars[second] = aux;
+
+				individual.resetValue(new ArrayList<>(Arrays.asList(individualChars)));
+
+				returnPopulation.getIndividuals().add(individual);
+				if (returnPopulation.getIndividuals().size() == population.getIndividuals().size()) {
+					break;
+				}
+			} else {
+				returnPopulation.getIndividuals().add(individual);
+			}
+		}
+
+		if (this.elitismType.getStringValue().equals("%")) {
+			int i = (this.bestIndividualsCount.getIntValue() * population.getIndividuals().size()) / 100;
+			population.defineBest(i);
+
+			if (this.elitism.getBooleanValue()) {
+				returnPopulation.getIndividuals().addAll(population.getBestIndividuals());
+			}
+
+			returnPopulation.defineBest(i);
+		} else {
+			population.defineBest(this.bestIndividualsCount.getIntValue());
+
+			if (this.elitism.getBooleanValue()) {
+				returnPopulation.getIndividuals().addAll(population.getBestIndividuals());
+			}
+
+			returnPopulation.defineBest(this.bestIndividualsCount.getIntValue());
+		}
+
+		return returnPopulation;
 	}
 
 	Population mutation(Population p, final ExecutionContext exec) throws CanceledExecutionException {
@@ -1253,10 +1283,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 		} else {
 			population.defineBest(this.bestIndividualsCount.getIntValue());
 		}
-
-		System.out.println("MUTATION BEST INDIVIDUAL START");
-		System.out.println(population.getBestIndividuals().get(0).getStringValue());
-		System.out.println(population.getBestIndividuals().get(0).getFitness());
 
 		Population returnPopulation = new Population();
 
@@ -1320,26 +1346,6 @@ public class GeneticAlgorithmNodeModel extends NodeModel {
 			returnPopulation.defineBest(this.bestIndividualsCount.getIntValue());
 		}
 
-		for (Individual i : returnPopulation.getIndividuals()) {
-			if (i.getFitness() > 0) {
-				System.out.println("AQUI");
-				System.out.println(i.getStringValue());
-				System.out.println(i.getFitness());
-				System.out.println(returnPopulation.getIndividuals().indexOf(i));
-			}
-		}
-
-		for (Individual i : population.getBestIndividuals()) {
-			if (i.getFitness() > 0) {
-				System.out.println("AQUI 2");
-				System.out.println(i.getStringValue());
-				System.out.println(i.getFitness());
-			}
-		}
-
-		System.out.println("MUTATION BEST INDIVIDUAL");
-		System.out.println(returnPopulation.getBestIndividuals().get(0).getStringValue());
-		System.out.println(returnPopulation.getBestIndividuals().get(0).getFitness());
 		return returnPopulation;
 	}
 
